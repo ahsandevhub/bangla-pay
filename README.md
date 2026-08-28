@@ -12,7 +12,7 @@ Starter repository for Ahsan Habib and Md. Saiful Islam. Replace this section wi
 
 ## Local Setup
 
-1. Install Node.js 24 LTS and Docker Desktop.
+1. Install Node.js 24 LTS. Docker Desktop is optional when local virtualization is unavailable.
 2. Run `npm install`.
 3. Copy `.env.example` to `.env.local` and provide the hosted Supabase values.
 4. Run `npm run dev` and open `http://localhost:3000`.
@@ -20,6 +20,8 @@ Starter repository for Ahsan Habib and Md. Saiful Islam. Replace this section wi
 ## Supabase
 
 Run `npm run db:start` to start the local Supabase stack. Use `npm run db:status` to copy the local API URL and publishable key when needed. Stop the stack with `npm run db:stop`.
+
+If Docker Desktop cannot start because virtualization is unavailable, use the hosted Supabase project for development until virtualization is enabled. Keep all schema work in committed migrations so the local stack can be adopted later without rewriting the database.
 
 Create every database change with `npx supabase migration new <feature-name>`, edit the generated SQL under `supabase/migrations/`, and verify it with `npm run db:reset`. Apply the reviewed migrations to the hosted project before deployment.
 
@@ -44,3 +46,7 @@ Never work on the same component or page at the same time. If a conflict occurs,
 ## Deployment
 
 Link this repository to Vercel. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Vercel for Preview and Production. Do not commit `.env.local` or any service-role key.
+
+## Agentic Development
+
+Read `AGENTS.md` before using Codex, Claude, or another coding agent. Agents must keep the root-level project structure, check current official documentation before integration changes, use the existing Supabase clients, preserve migration history, and run the relevant checks before handing work back.
