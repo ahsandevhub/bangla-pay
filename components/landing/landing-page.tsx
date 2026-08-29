@@ -48,6 +48,11 @@ const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--bp-font-
 const headingFontFamily =
   "var(--font-baloo-da-2), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
 
+// JetBrains Mono has no Bengali glyphs, so digits/labels in Bangla fall
+// through to Anek Bangla/Hind Siliguri instead of an unstyled system font.
+const monoFontFamily =
+  "var(--bp-font-mono), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
+
 const ICONS: Record<IconKey, LucideIcon> = {
   send: Send,
   "hand-coins": HandCoins,
@@ -497,7 +502,7 @@ export function LandingPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <span
               style={{
-                fontFamily: "var(--bp-font-mono)",
+                fontFamily: monoFontFamily,
                 fontSize: "clamp(36px, 5vw, 50px)",
                 fontWeight: 600,
                 lineHeight: 1.05,
@@ -606,7 +611,7 @@ export function LandingPage() {
             <Reveal key={row.label} style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
               <span
                 style={{
-                  fontFamily: "var(--bp-font-mono)",
+                  fontFamily: monoFontFamily,
                   fontSize: "clamp(21px, 2.6vw, 27px)",
                   fontWeight: 600,
                   letterSpacing: "-0.02em",
@@ -839,7 +844,7 @@ export function LandingPage() {
               <span>{t.login}</span>
             </Link>
           </div>
-          <span style={{ fontFamily: "var(--bp-font-mono)", fontSize: 12, opacity: 0.8 }}>{t.finalFoot}</span>
+          <span style={{ fontFamily: monoFontFamily, fontSize: 12, opacity: 0.8 }}>{t.finalFoot}</span>
         </Reveal>
       </section>
 
@@ -950,7 +955,7 @@ function HowItWorks({
             >
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                 <Icon size={16} strokeWidth={2} color="var(--bp-primary)" aria-hidden="true" />
-                <span style={{ fontFamily: "var(--bp-font-mono)", fontSize: 12.5, fontWeight: 600, color: "var(--bp-primary)" }}>
+                <span style={{ fontFamily: monoFontFamily, fontSize: 12.5, fontWeight: 600, color: "var(--bp-primary)" }}>
                   {row.n}
                 </span>
               </div>
