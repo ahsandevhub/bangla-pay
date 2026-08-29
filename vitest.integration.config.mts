@@ -15,5 +15,13 @@ export default defineConfig({
     environment: "node",
     include: ["tests/integration/**/*.test.ts"],
     testTimeout: 15_000,
+    // These files all share one mutable local Postgres instance -- Vitest's
+    // default is to run separate test *files* in parallel, which let
+    // kyc.test.ts's dynamically-seeded fake_nid_records rows still be
+    // present when schema.test.ts's fixture-count assertion ran
+    // concurrently. Sequential files trade some wall-clock time for
+    // correctness here, since nothing about this suite is safe to run
+    // file-parallel against shared, mutable state.
+    fileParallelism: false,
   },
 });

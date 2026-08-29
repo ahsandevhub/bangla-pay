@@ -578,6 +578,7 @@ export type Database = {
         Returns: {
           account_id: string
           balance_poisha: number
+          failure_code: string
           status: Database["public"]["Enums"]["kyc_verification_status"]
           wallet_number: string
         }[]

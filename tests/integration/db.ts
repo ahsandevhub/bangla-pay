@@ -18,6 +18,59 @@ export function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
+// Must match ^\+8801[3-9][0-9]{8}$: "+8801" + one digit in [3-9] + 8 digits.
+export function randomPhone(seed: string): string {
+  const firstDigit = "3456789"[Number(seed) % 7];
+  const rest = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+  return `+8801${firstDigit}${rest}`;
+}
+
+/**
+ * Registers a user through the real Phase 4 OTP + complete_registration
+ * path (Postgres side only, bypassing GoTrue) and returns everything a test
+ * needs for an authenticated session. The resulting profile is PENDING_KYC
+ * with no account yet -- for an already-ACTIVE user with a funded-ready
+ * account, use createTestUser instead.
+ */
+export async function registerPendingKycUser(phone: string) {
+  const userId = randomUUID();
+  const sessionId = randomUUID();
+  await pool.query("insert into auth.users (id, email) values ($1, $2)", [userId, `${userId}@test.local`]);
+
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query("set local role authenticated");
+    await client.query("select set_config('request.jwt.claims', $1, true)", [
+      JSON.stringify({ sub: userId, session_id: sessionId, role: "authenticated" }),
+    ]);
+
+    const sendResult = await client.query("select public.request_otp($1, 'REGISTRATION') as inbox_token", [
+      phone,
+    ]);
+    const inboxToken = sendResult.rows[0].inbox_token as string;
+    const codeResult = await client.query("select code from public.read_demo_sms($1)", [inboxToken]);
+    const code = codeResult.rows[0].code as string;
+    await client.query("select public.verify_otp($1, 'REGISTRATION', $2)", [phone, code]);
+
+    const deviceToken = `device-${randomUUID()}`;
+    await client.query("select public.complete_registration($1, $2, $3, $4)", [
+      phone,
+      `pin-fingerprint-${randomUUID()}`,
+      sha256Hex(deviceToken),
+      "test-agent",
+    ]);
+    await client.query("commit");
+
+    return { userId, sessionId, deviceToken, phone };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 /**
  * Creates a UUID-suffixed test user (auth.users + profiles + accounts +
  * security_profiles + trusted_devices) and returns everything a test needs

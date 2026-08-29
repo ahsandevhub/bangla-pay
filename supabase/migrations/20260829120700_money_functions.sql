@@ -334,6 +334,7 @@ create function public.activate_account_after_kyc(
 )
 returns table (
   status public.kyc_verification_status,
+  failure_code text,
   account_id uuid,
   wallet_number text,
   balance_poisha bigint
@@ -368,7 +369,12 @@ begin
   select count(*) into v_recent_failures
   from public.kyc_verifications
   where user_id = v_user_id
-    and status = 'REJECTED'
+    -- Table-qualified: this function's RETURNS TABLE(status, ...) declares
+    -- "status" as a PL/pgSQL variable, ambiguous against the bare column
+    -- name -- same shadowing pattern as _move_money's RETURNING clause.
+    -- Latent since Phase 1 (this function was never actually exercised
+    -- until Phase 5's KYC integration tests called it for the first time).
+    and public.kyc_verifications.status = 'REJECTED'
     and created_at > now() - interval '1 hour';
 
   if v_recent_failures >= 3 then
@@ -380,9 +386,16 @@ begin
   -- concurrent submissions of the same NID cannot both observe "not yet
   -- claimed" and both proceed to activation.
   perform 1 from public.kyc_verifications
-  where nid_fingerprint = p_nid_fingerprint and status = 'VERIFIED'
+  where nid_fingerprint = p_nid_fingerprint and public.kyc_verifications.status = 'VERIFIED'
   for update;
 
+  -- NID_ALREADY_USED and KYC_NO_MATCH below return a result row rather than
+  -- raising, unlike the checks above: both are preceded by an INSERT that
+  -- must actually persist (the rejected-attempt audit trail
+  -- KYC_ATTEMPTS_EXCEEDED counts), and a RAISE EXCEPTION rolls back the
+  -- entire call it's in -- including that INSERT. Confirmed by testing:
+  -- the REJECTED row never persisted, so KYC_ATTEMPTS_EXCEEDED could never
+  -- trigger. Same fix as verify_otp; see that function's comment.
   if found then
     insert into public.kyc_verifications (
       user_id, document_path, submitted_nid_number, submitted_date_of_birth,
@@ -391,7 +404,9 @@ begin
       v_user_id, p_document_path, p_submitted_nid_number, p_submitted_date_of_birth,
       p_submitted_bangla_name, p_submitted_english_name, p_nid_fingerprint, 'REJECTED', 'NID_ALREADY_USED'
     );
-    raise exception 'NID_ALREADY_USED' using errcode = 'P0001';
+    return query select 'REJECTED'::public.kyc_verification_status, 'NID_ALREADY_USED'::text,
+      null::uuid, null::text, null::bigint;
+    return;
   end if;
 
   -- Match requires exact NID + DOB plus at least one exact normalized name.
@@ -409,7 +424,9 @@ begin
       v_user_id, p_document_path, p_submitted_nid_number, p_submitted_date_of_birth,
       p_submitted_bangla_name, p_submitted_english_name, p_nid_fingerprint, 'REJECTED', 'KYC_NO_MATCH'
     );
-    raise exception 'KYC_NO_MATCH' using errcode = 'P0001';
+    return query select 'REJECTED'::public.kyc_verification_status, 'KYC_NO_MATCH'::text,
+      null::uuid, null::text, null::bigint;
+    return;
   end if;
 
   insert into public.kyc_verifications (
@@ -439,7 +456,7 @@ begin
   -- Table-qualified for the same reason as _move_money above: this
   -- function's RETURNS TABLE(..., balance_poisha) declares "balance_poisha"
   -- as a PL/pgSQL variable, ambiguous against the bare column name.
-  return query select 'VERIFIED'::public.kyc_verification_status, v_account_id, v_profile.phone,
+  return query select 'VERIFIED'::public.kyc_verification_status, null::text, v_account_id, v_profile.phone,
     (select public.accounts.balance_poisha from public.accounts where public.accounts.id = v_account_id);
 end;
 $$;

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
-import { pool, sha256Hex, withAuthenticatedSession } from "./db";
+import { pool, randomPhone, registerPendingKycUser, sha256Hex, withAuthenticatedSession } from "./db";
 
 // Phase 4: OTP lifecycle, registration, device-trust preconditions, PIN
 // lockout, and PIN change -- the PL/pgSQL functions lib/auth's repository
@@ -15,52 +15,7 @@ afterAll(async () => {
   await Promise.all(cleanups.map((cleanup) => cleanup()));
 });
 
-// Must match ^\+8801[3-9][0-9]{8}$: "+8801" + one digit in [3-9] + 8 digits.
-function randomPhone(seed: string): string {
-  const firstDigit = "3456789"[Number(seed) % 7];
-  const rest = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
-  return `+8801${firstDigit}${rest}`;
-}
-
-/** Registers a user directly against the Postgres side only (bypassing GoTrue), for tests that don't need a real Supabase Auth session. */
-async function registerUser(phone: string) {
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-  await pool.query("insert into auth.users (id, email) values ($1, $2)", [userId, `${userId}@test.local`]);
-
-  const client = await pool.connect();
-  try {
-    await client.query("begin");
-    await client.query("set local role authenticated");
-    await client.query("select set_config('request.jwt.claims', $1, true)", [
-      JSON.stringify({ sub: userId, session_id: sessionId, role: "authenticated" }),
-    ]);
-
-    const sendResult = await client.query("select public.request_otp($1, 'REGISTRATION') as inbox_token", [
-      phone,
-    ]);
-    const inboxToken = sendResult.rows[0].inbox_token as string;
-    const codeResult = await client.query("select code from public.read_demo_sms($1)", [inboxToken]);
-    const code = codeResult.rows[0].code as string;
-    await client.query("select public.verify_otp($1, 'REGISTRATION', $2)", [phone, code]);
-
-    const deviceToken = `device-${randomUUID()}`;
-    await client.query("select public.complete_registration($1, $2, $3, $4)", [
-      phone,
-      `pin-fingerprint-${randomUUID()}`,
-      sha256Hex(deviceToken),
-      "test-agent",
-    ]);
-    await client.query("commit");
-
-    return { userId, sessionId, deviceToken, phone };
-  } catch (error) {
-    await client.query("rollback");
-    throw error;
-  } finally {
-    client.release();
-  }
-}
+const registerUser = registerPendingKycUser;
 
 function cleanupUser(userId: string) {
   cleanups.push(async () => {

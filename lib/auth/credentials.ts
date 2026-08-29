@@ -23,6 +23,17 @@ export function derivePinFingerprint(canonicalPhone: string, pin: string): strin
   return hmacSha256Hex("pin-history", `${canonicalPhone}:${pin}`);
 }
 
+/**
+ * Identifies a normalized NID number, independent of who submits it -- two
+ * different users submitting the same NID number must produce the identical
+ * fingerprint for kyc_verifications' uniqueness constraint to catch the
+ * collision. Deliberately not user- or phone-scoped, unlike the other
+ * derivations here.
+ */
+export function deriveNidFingerprint(normalizedNidNumber: string): string {
+  return hmacSha256Hex("nid", normalizedNidNumber);
+}
+
 /** A fresh 32-byte trusted-device token. Only its hash (below) is ever persisted. */
 export function generateDeviceToken(): string {
   return randomBytes(32).toString("hex");
