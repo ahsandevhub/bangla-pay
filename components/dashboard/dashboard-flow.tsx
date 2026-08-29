@@ -57,6 +57,11 @@ const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--db-font-
 const headingFontFamily =
   "var(--font-baloo-da-2), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
 
+// JetBrains Mono has no Bengali glyphs, so digits/labels in Bangla fall
+// through to Anek Bangla/Hind Siliguri instead of an unstyled system font.
+const monoFontFamily =
+  "var(--db-font-mono), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
+
 type Tab = "send" | "request";
 type ToastKey = "toastSent" | "toastRequested" | "toastPaid" | "toastDeclined";
 type ToastState = { key: ToastKey; params: Record<string, string> } | null;
@@ -311,7 +316,7 @@ export function DashboardFlow() {
                 fontWeight: 700,
                 display: "grid",
                 placeItems: "center",
-                fontFamily: "var(--db-font-mono)",
+                fontFamily: monoFontFamily,
               }}
             >
               {num(requests.length)}
@@ -345,7 +350,7 @@ export function DashboardFlow() {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--db-credit)" }}>{t.ledgerOk}</span>
           </div>
           <div style={{ fontSize: 11.5, color: "var(--db-muted-fg)", lineHeight: 1.5, textWrap: "pretty" }}>{t.ledgerDesc}</div>
-          <div style={{ fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)" }}>
+          <div style={{ fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)" }}>
             {fillTemplate(t.ledgerMeta, { n: num(12481), amt: fmt(0) })}
           </div>
         </div>
@@ -371,7 +376,7 @@ export function DashboardFlow() {
             <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {t.userName}
             </span>
-            <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)" }}>01711-000000</span>
+            <span style={{ fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)" }}>01711-000000</span>
           </div>
         </div>
       </aside>
@@ -402,7 +407,7 @@ export function DashboardFlow() {
             </span>
           </div>
           <div data-el="hctrl" style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
-            <span data-el="route" style={{ fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)" }}>
+            <span data-el="route" style={{ fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)" }}>
               {"/" + locale + "/dashboard"}
             </span>
             <div
@@ -561,7 +566,7 @@ export function DashboardFlow() {
           >
             <ShieldCheck size={15} strokeWidth={2} color="var(--db-credit)" aria-hidden="true" />
             <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--db-credit)" }}>{t.ledgerOk}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)", whiteSpace: "nowrap" }}>
+            <span style={{ marginLeft: "auto", fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)", whiteSpace: "nowrap" }}>
               {fillTemplate(t.ledgerMeta, { n: num(12481), amt: fmt(0) })}
             </span>
           </section>
@@ -590,7 +595,7 @@ export function DashboardFlow() {
                   data-el="bigamt"
                   data-testid="dashboard-balance"
                   style={{
-                    fontFamily: "var(--db-font-mono)",
+                    fontFamily: monoFontFamily,
                     fontSize: 42,
                     fontWeight: 600,
                     letterSpacing: "-0.02em",
@@ -600,7 +605,7 @@ export function DashboardFlow() {
                 >
                   {fmt(balance)}
                 </span>
-                <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 12, opacity: 0.8 }}>
+                <span style={{ fontFamily: monoFontFamily, fontSize: 12, opacity: 0.8 }}>
                   {fillTemplate(t.poisha, { n: num(balance) })}
                 </span>
               </div>
@@ -620,7 +625,7 @@ export function DashboardFlow() {
                   <ShieldCheck size={13} strokeWidth={2} aria-hidden="true" />
                   <span>{t.active}</span>
                 </span>
-                <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 12.5, opacity: 0.85 }}>01711-000000</span>
+                <span style={{ fontFamily: monoFontFamily, fontSize: 12.5, opacity: 0.85 }}>01711-000000</span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -693,7 +698,7 @@ export function DashboardFlow() {
                 <ArrowDownLeft size={14} strokeWidth={2} color="var(--db-credit)" aria-hidden="true" />
                 <span>{t.statsIn}</span>
               </span>
-              <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 23, fontWeight: 600, color: "var(--db-credit)", fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ fontFamily: monoFontFamily, fontSize: 23, fontWeight: 600, color: "var(--db-credit)", fontVariantNumeric: "tabular-nums" }}>
                 {fmt(2_842_000)}
               </span>
               <span style={{ fontSize: 11.5, color: "var(--db-muted-fg)" }}>{t.statsCredits}</span>
@@ -713,7 +718,7 @@ export function DashboardFlow() {
                 <ArrowUpRight size={14} strokeWidth={2} color="var(--db-debit)" aria-hidden="true" />
                 <span>{t.statsOut}</span>
               </span>
-              <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 23, fontWeight: 600, color: "var(--db-debit)", fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ fontFamily: monoFontFamily, fontSize: 23, fontWeight: 600, color: "var(--db-debit)", fontVariantNumeric: "tabular-nums" }}>
                 {fmt(1_970_000)}
               </span>
               <span style={{ fontSize: 11.5, color: "var(--db-muted-fg)" }}>{t.statsDebits}</span>
@@ -775,7 +780,7 @@ export function DashboardFlow() {
                   {t.tabRequest}
                 </button>
               </div>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)" }}>
                 <KeyRound size={13} strokeWidth={2} aria-hidden="true" />
                 <span>Idempotency-Key: {idem}</span>
               </span>
@@ -811,7 +816,7 @@ export function DashboardFlow() {
                       border: "none",
                       background: "transparent",
                       color: "var(--db-fg)",
-                      fontFamily: "var(--db-font-mono)",
+                      fontFamily: monoFontFamily,
                       fontSize: 13.5,
                       outline: "none",
                     }}
@@ -832,7 +837,7 @@ export function DashboardFlow() {
                   }}
                 >
                   <Banknote size={16} strokeWidth={2} color="var(--db-muted-fg)" aria-hidden="true" />
-                  <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 14, color: "var(--db-muted-fg)" }}>৳</span>
+                  <span style={{ fontFamily: monoFontFamily, fontSize: 14, color: "var(--db-muted-fg)" }}>৳</span>
                   <input
                     ref={amountRef}
                     value={amount}
@@ -850,7 +855,7 @@ export function DashboardFlow() {
                       border: "none",
                       background: "transparent",
                       color: "var(--db-fg)",
-                      fontFamily: "var(--db-font-mono)",
+                      fontFamily: monoFontFamily,
                       fontSize: 14,
                       fontVariantNumeric: "tabular-nums",
                       outline: "none",
@@ -913,7 +918,7 @@ export function DashboardFlow() {
                     border: "1px solid var(--db-border)",
                     background: "transparent",
                     color: "var(--db-muted-fg)",
-                    fontFamily: "var(--db-font-mono)",
+                    fontFamily: monoFontFamily,
                     fontSize: 12,
                     fontWeight: 500,
                     whiteSpace: "nowrap",
@@ -1017,7 +1022,7 @@ export function DashboardFlow() {
                     style={{
                       flex: "0 0 auto",
                       whiteSpace: "nowrap",
-                      fontFamily: "var(--db-font-mono)",
+                      fontFamily: monoFontFamily,
                       fontSize: 13.5,
                       fontWeight: 600,
                       color: "var(--db-pending)",
@@ -1098,7 +1103,7 @@ export function DashboardFlow() {
                 <span style={{ fontSize: 14, fontWeight: 700 }}>{t.txnTitle}</span>
                 <span style={{ fontSize: 11.5, color: "var(--db-muted-fg)" }}>{t.txnSub}</span>
               </div>
-              <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)", flex: "0 0 auto" }}>
+              <span style={{ fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)", flex: "0 0 auto" }}>
                 cursor: {"id<" + num(2481 - txns.length)}
               </span>
             </div>
@@ -1168,7 +1173,7 @@ export function DashboardFlow() {
                       >
                         {localized(row.note)} · {typeLabel}
                       </span>
-                      <span style={{ fontFamily: "var(--db-font-mono)", fontSize: 11, color: "var(--db-muted-fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {row.time ? localized(row.time) : t.justNow}
                       </span>
                     </div>
@@ -1182,10 +1187,10 @@ export function DashboardFlow() {
                   >
                     {typeLabel}
                   </span>
-                  <span style={{ textAlign: "right", fontFamily: "var(--db-font-mono)", fontWeight: 600, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: chipFg }}>
+                  <span style={{ textAlign: "right", fontFamily: monoFontFamily, fontWeight: 600, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: chipFg }}>
                     {(credit ? "+" : "−") + fmt(row.amountPoisha)}
                   </span>
-                  <span data-col="after" style={{ textAlign: "right", fontFamily: "var(--db-font-mono)", fontSize: 12.5, color: "var(--db-muted-fg)", fontVariantNumeric: "tabular-nums" }}>
+                  <span data-col="after" style={{ textAlign: "right", fontFamily: monoFontFamily, fontSize: 12.5, color: "var(--db-muted-fg)", fontVariantNumeric: "tabular-nums" }}>
                     {fmt(row.afterPoisha)}
                   </span>
                   <span
@@ -1330,7 +1335,7 @@ export function DashboardFlow() {
               borderRadius: 999,
               background: "var(--db-pending)",
               color: "var(--db-accent-fg)",
-              fontFamily: "var(--db-font-mono)",
+              fontFamily: monoFontFamily,
               fontSize: 10,
               fontWeight: 700,
               display: "grid",
