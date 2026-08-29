@@ -16,6 +16,7 @@ class FakeAuthRepository implements AuthRepository {
   verifyOtp = vi.fn<AuthRepository["verifyOtp"]>();
   createAuthUser = vi.fn<AuthRepository["createAuthUser"]>();
   signInWithPassword = vi.fn<AuthRepository["signInWithPassword"]>();
+  signOut = vi.fn<AuthRepository["signOut"]>();
   signOutOtherSessions = vi.fn<AuthRepository["signOutOtherSessions"]>();
   updatePassword = vi.fn<AuthRepository["updatePassword"]>();
   completeRegistration = vi.fn<AuthRepository["completeRegistration"]>();
@@ -39,6 +40,7 @@ function passingRepo(): FakeAuthRepository {
   repo.verifyOtp.mockResolvedValue(ok(undefined));
   repo.createAuthUser.mockResolvedValue(ok("user-1"));
   repo.signInWithPassword.mockResolvedValue(ok(undefined));
+  repo.signOut.mockResolvedValue(ok(undefined));
   repo.signOutOtherSessions.mockResolvedValue(ok(undefined));
   repo.updatePassword.mockResolvedValue(ok(undefined));
   repo.completeRegistration.mockResolvedValue(ok(undefined));
@@ -301,5 +303,28 @@ describe("AuthService OTP passthroughs", () => {
 
     expect(repo.getOwnPhone).not.toHaveBeenCalled();
     expect(repo.sendOtp).toHaveBeenCalledWith("+8801711000001", "REGISTRATION");
+  });
+});
+
+describe("AuthService.signOut", () => {
+  it("delegates to the repository and propagates success", async () => {
+    const repo = passingRepo();
+    const service = new AuthService(repo);
+
+    const result = await service.signOut();
+
+    expect(repo.signOut).toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+  });
+
+  it("propagates a repository failure", async () => {
+    const repo = passingRepo();
+    repo.signOut.mockResolvedValue(err(appError("UNAUTHENTICATED", "Not signed in.")));
+    const service = new AuthService(repo);
+
+    const result = await service.signOut();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("UNAUTHENTICATED");
   });
 });

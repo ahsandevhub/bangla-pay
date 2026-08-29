@@ -22,6 +22,7 @@ import {
   KeyRound,
   ArrowDownLeft,
   ArrowUpRight,
+  LogOut,
 } from "lucide-react";
 import {
   DASHBOARD_COPY,
@@ -191,6 +192,7 @@ export function DashboardFlow() {
   const [actingRequestId, setActingRequestId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [receipt, setReceipt] = useState<Receipt>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   const t = DASHBOARD_COPY[locale];
   const amountRef = useRef<HTMLInputElement | null>(null);
@@ -229,6 +231,20 @@ export function DashboardFlow() {
     }
     setLoadingMore(false);
   }, []);
+
+  // Only navigates to /login once the server has actually cleared the
+  // session cookie -- pushing there unconditionally would bounce right back
+  // to /dashboard via proxy.ts's optimistic auth redirect if the API call
+  // failed and the cookie were still valid.
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true);
+    const res = await apiFetch("/api/auth/signout", { method: "POST" });
+    if (res.ok) {
+      router.push("/login");
+      return;
+    }
+    setSigningOut(false);
+  }, [router]);
 
   useEffect(() => {
     // Deferred a tick so the setState call is a reaction to mounting having
@@ -736,6 +752,30 @@ export function DashboardFlow() {
                 <span>{t.dark}</span>
               </button>
             </div>
+            <button
+              type="button"
+              data-testid="dashboard-sign-out-button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                border: "1px solid var(--db-border)",
+                cursor: signingOut ? "default" : "pointer",
+                padding: "9px 14px",
+                borderRadius: 9,
+                background: "var(--db-card)",
+                color: "var(--db-muted-fg)",
+                fontSize: 12.5,
+                fontWeight: 600,
+                opacity: signingOut ? 0.6 : 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <LogOut size={14} strokeWidth={2} aria-hidden="true" />
+              <span>{signingOut ? t.signingOut : t.signOut}</span>
+            </button>
             <button
               data-el="hcta"
               type="button"

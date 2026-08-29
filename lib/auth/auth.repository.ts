@@ -19,6 +19,7 @@ export interface AuthRepository {
 
   createAuthUser(phone: string, passwordCredential: string): Promise<Result<string, AppError>>;
   signInWithPassword(phone: string, passwordCredential: string): Promise<Result<void, AppError>>;
+  signOut(): Promise<Result<void, AppError>>;
   signOutOtherSessions(): Promise<Result<void, AppError>>;
   updatePassword(newPasswordCredential: string): Promise<Result<void, AppError>>;
 
@@ -134,6 +135,18 @@ export class SupabaseAuthRepository implements AuthRepository {
     });
     if (error) {
       return err(appError("PIN_INVALID", defaultMessageForErrorCode("PIN_INVALID")));
+    }
+    return ok(undefined);
+  }
+
+  // "local" scope only clears this browser's own session -- unlike
+  // signOutOtherSessions()'s "others" scope, a plain sign-out must never
+  // revoke the caller's own trusted device/active session, or the very next
+  // login from this same browser would incorrectly look untrusted.
+  async signOut(): Promise<Result<void, AppError>> {
+    const { error } = await this.client.auth.signOut({ scope: "local" });
+    if (error) {
+      return err(appError("INTERNAL_ERROR", defaultMessageForErrorCode("INTERNAL_ERROR")));
     }
     return ok(undefined);
   }

@@ -238,6 +238,19 @@ test("paginates transaction history with Load older", async ({ page, browser }) 
   await expect(page.getByTestId("history-load-older")).toBeDisabled();
 });
 
+test("signs out and blocks returning to the dashboard without logging in again", async ({ page }) => {
+  const phone = randomTestPhone();
+  await registerActiveUser(page.context().request, phone);
+  await gotoDashboardEn(page);
+
+  await expect(page.getByTestId("dashboard-balance")).toHaveText(INITIAL_FUNDING_BDT);
+  await page.getByTestId("dashboard-sign-out-button").click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/dashboard");
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 async function accountSummary(request: APIRequestContext) {
   // Observed occasionally under heavy parallel-worker load against `next
   // dev` (not a real API/app failure -- the same call succeeds reliably in
