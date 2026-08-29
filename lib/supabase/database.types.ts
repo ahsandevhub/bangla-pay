@@ -593,6 +593,31 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_request: {
+        Args: {
+          p_amount_poisha: number
+          p_note: string
+          p_payer_wallet: string
+        }
+        Returns: {
+          amount_poisha: number
+          created_at: string
+          expires_at: string
+          id: string
+          note: string | null
+          payer_account_id: string
+          requester_account_id: string
+          settlement_transaction_id: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "money_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_session_is_active: { Args: never; Returns: boolean }
       decline_request: {
         Args: { p_request_id: string }

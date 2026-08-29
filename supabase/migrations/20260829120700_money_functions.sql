@@ -246,8 +246,13 @@ begin
     raise exception 'REQUEST_NOT_FOUND' using errcode = 'P0001';
   end if;
 
+  -- No UPDATE-then-raise here: a raised exception aborts and rolls back this
+  -- entire call (PostgREST/any RPC caller runs one function call as one
+  -- transaction), so an UPDATE immediately before a RAISE can never persist
+  -- -- it would silently be dead code. Actually flipping expired rows to
+  -- EXPIRED in storage is expire_money_requests()'s job (Phase 7, pg_cron);
+  -- this check only ever rejects the accept attempt.
   if v_request.status = 'PENDING' and v_request.expires_at < now() then
-    update public.money_requests set status = 'EXPIRED', updated_at = now() where id = p_request_id;
     raise exception 'REQUEST_EXPIRED' using errcode = 'P0001';
   end if;
 

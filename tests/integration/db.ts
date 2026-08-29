@@ -63,10 +63,16 @@ export async function createTestUser(phoneSuffix: string) {
     sessionId,
     deviceToken,
     cleanup: async () => {
-      // transactions/ledger_entries deliberately have no ON DELETE cascade
-      // from accounts (financial history must survive account deletion), so
-      // a hard test-cleanup has to remove them explicitly first, in
-      // dependency order, before auth.users cascades the rest.
+      // transactions/ledger_entries/money_requests deliberately have no ON
+      // DELETE cascade from accounts (financial history must survive account
+      // deletion), so a hard test-cleanup has to remove them explicitly
+      // first, in dependency order, before auth.users cascades the rest.
+      // money_requests must go before transactions -- it references a
+      // settlement transaction via settlement_transaction_id.
+      await pool.query(
+        "delete from public.money_requests where requester_account_id = $1 or payer_account_id = $1",
+        [accountId],
+      );
       await pool.query(
         `delete from public.ledger_entries
          where transaction_id in (
@@ -77,10 +83,6 @@ export async function createTestUser(phoneSuffix: string) {
       );
       await pool.query(
         "delete from public.transactions where source_account_id = $1 or destination_account_id = $1",
-        [accountId],
-      );
-      await pool.query(
-        "delete from public.money_requests where requester_account_id = $1 or payer_account_id = $1",
         [accountId],
       );
       await pool.query("delete from public.accounts where id = $1", [accountId]);
