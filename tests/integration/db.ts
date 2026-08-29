@@ -9,7 +9,10 @@ import { Pool } from "pg";
 const connectionString =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-export const pool = new Pool({ connectionString });
+// max: 30 so the Phase 2 concurrency tests (up to 30 simultaneous transfers)
+// genuinely fire together at the database level instead of queuing behind a
+// smaller default pool, which would understate real concurrent contention.
+export const pool = new Pool({ connectionString, max: 30 });
 
 export function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");
