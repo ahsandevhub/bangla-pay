@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   // the JSON body, only ever set it as the HttpOnly cookie.
   const response = toResponse(ok({ loggedIn: true }));
   if (result.value.deviceToken) {
-    setDeviceTokenCookie(response, result.value.deviceToken);
+    setDeviceTokenCookie(response, result.value.deviceToken, request);
   }
   return response;
 }

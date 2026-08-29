@@ -114,12 +114,28 @@ export const DEVICE_TOKEN_COOKIE = "bp_device_token";
 // replacement), not on a fixed schedule.
 const DEVICE_TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
 
+/**
+ * `NODE_ENV === "production"` is true for any production *build*, including
+ * `next start` served over plain HTTP for a local demo -- not just an
+ * actually-HTTPS deployment. A `Secure` cookie set over plain HTTP is
+ * silently dropped/never sent back by the browser, which made every
+ * device-gated route (transfers, request accept, ...) fail as
+ * DEVICE_REPLACED the moment this ran as a production build without TLS in
+ * front of it. Deriving from the request's own protocol (falling back to
+ * the standard reverse-proxy header) reflects the actual connection instead.
+ */
+function isSecureRequest(request: NextRequest): boolean {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) return forwardedProto === "https";
+  return request.nextUrl.protocol === "https:";
+}
+
 /** Sets the trusted-device cookie on a response (registration, new-device login). */
-export function setDeviceTokenCookie(response: NextResponse, deviceToken: string): void {
+export function setDeviceTokenCookie(response: NextResponse, deviceToken: string, request: NextRequest): void {
   response.cookies.set(DEVICE_TOKEN_COOKIE, deviceToken, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureRequest(request),
     path: "/",
     maxAge: DEVICE_TOKEN_COOKIE_MAX_AGE_SECONDS,
   });

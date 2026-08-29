@@ -23,6 +23,6 @@ export async function POST(request: NextRequest) {
   // below -- echoing it back in the JSON body would give client JS a way to
   // read it, defeating part of the point of HttpOnly.
   const response = toResponse(ok({ registered: true }));
-  setDeviceTokenCookie(response, result.value.deviceToken);
+  setDeviceTokenCookie(response, result.value.deviceToken, request);
   return response;
 }
