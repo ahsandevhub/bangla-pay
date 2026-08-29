@@ -675,6 +675,31 @@ export type Database = {
       }
       expire_money_requests: { Args: never; Returns: number }
       is_phone_registered: { Args: { p_phone: string }; Returns: boolean }
+      list_pending_requests_for_payer: {
+        Args: never
+        Returns: {
+          amount_poisha: number
+          created_at: string
+          expires_at: string
+          id: string
+          note: string
+          requester_wallet_number: string
+        }[]
+      }
+      list_transaction_history: {
+        Args: { p_cursor: number; p_limit: number }
+        Returns: {
+          amount_poisha: number
+          balance_after_poisha: number
+          counterparty_wallet_number: string
+          created_at: string
+          direction: Database["public"]["Enums"]["ledger_direction"]
+          ledger_entry_id: number
+          note: string
+          transaction_id: string
+          type: Database["public"]["Enums"]["transaction_type"]
+        }[]
+      }
       read_demo_sms: {
         Args: { p_inbox_token: string }
         Returns: {

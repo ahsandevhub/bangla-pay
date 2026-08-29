@@ -2,7 +2,7 @@ import { InvalidMoneyError, Money } from "@/lib/shared/domain/money";
 import { type Result, err } from "@/lib/shared/result";
 import { type AppError, appError, defaultMessageForErrorCode } from "@/lib/shared/errors/app-error";
 import type { RequestRepository } from "@/lib/requests/request.repository";
-import type { MoneyRequest, RequestSettlement } from "@/lib/requests/request.types";
+import type { MoneyRequest, RequestInboxItem, RequestSettlement } from "@/lib/requests/request.types";
 
 export class RequestService {
   constructor(private readonly requests: RequestRepository) {}
@@ -35,5 +35,9 @@ export class RequestService {
 
   decline(params: { requestId: string }): Promise<Result<MoneyRequest, AppError>> {
     return this.requests.decline(params);
+  }
+
+  listPendingForPayer(): Promise<Result<RequestInboxItem[], AppError>> {
+    return this.requests.listPendingForPayer();
   }
 }

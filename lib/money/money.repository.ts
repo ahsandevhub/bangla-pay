@@ -74,19 +74,18 @@ export class SupabaseMoneyRepository implements MoneyRepository {
       cursorId = decoded;
     }
 
-    // RLS (ledger_entries_select_own_account) already scopes this to the
-    // caller's own account -- no need to resolve/pass an account id here.
-    let query = this.client
-      .from("ledger_entries")
-      .select("id, transaction_id, direction, amount_poisha, balance_after_poisha, created_at")
-      .order("id", { ascending: false })
-      .limit(HISTORY_PAGE_SIZE + 1);
+    // A plain ledger_entries select (RLS-scoped to the caller's own account)
+    // can't also show the transaction type or a counterparty wallet number --
+    // accounts_select_own hides every other account. list_transaction_history
+    // resolves the caller's account from auth.uid() itself and does that
+    // enrichment join as SECURITY DEFINER, same pattern as create_request.
+    const { data, error } = await this.client.rpc("list_transaction_history", {
+      // The Postgres parameter is nullable; Supabase's generated Args type
+      // doesn't reflect that (same as p_note elsewhere in this file).
+      p_cursor: cursorId as number,
+      p_limit: HISTORY_PAGE_SIZE + 1,
+    });
 
-    if (cursorId !== null) {
-      query = query.lt("id", cursorId);
-    }
-
-    const { data, error } = await query;
     if (error) {
       return err(appErrorFromSupabaseError(error));
     }
@@ -98,14 +97,17 @@ export class SupabaseMoneyRepository implements MoneyRepository {
 
     return ok({
       items: page.map((row) => ({
-        ledgerEntryId: row.id,
+        ledgerEntryId: row.ledger_entry_id,
         transactionId: row.transaction_id,
+        type: row.type,
         direction: row.direction,
         amountPoisha: rpcNumberToPoisha(row.amount_poisha),
         balanceAfterPoisha: rpcNumberToPoisha(row.balance_after_poisha),
+        note: row.note,
+        counterpartyWalletNumber: row.counterparty_wallet_number,
         createdAt: row.created_at,
       })),
-      nextCursor: hasMore && lastRow ? encodeCursor(lastRow.id) : null,
+      nextCursor: hasMore && lastRow ? encodeCursor(lastRow.ledger_entry_id) : null,
     });
   }
 }

@@ -76,4 +76,30 @@ describe("MoneyService.listTransactionHistory", () => {
     expect(result).toEqual(ok(page));
     expect(repo.listTransactionHistory).toHaveBeenCalledWith({ cursor: null });
   });
+
+  it("passes through an enriched page (type, note, counterparty wallet)", async () => {
+    const repo = new FakeMoneyRepository();
+    const page: TransactionHistoryPage = {
+      items: [
+        {
+          ledgerEntryId: 1,
+          transactionId: "tx-1",
+          type: "TRANSFER",
+          direction: "DEBIT",
+          amountPoisha: 250050n,
+          balanceAfterPoisha: 9749950n,
+          note: "lunch",
+          counterpartyWalletNumber: "+8801811000002",
+          createdAt: "2026-08-29T00:00:00Z",
+        },
+      ],
+      nextCursor: "MQ",
+    };
+    repo.listTransactionHistory.mockResolvedValue(ok(page));
+    const service = new MoneyService(repo);
+
+    const result = await service.listTransactionHistory({ cursor: null });
+
+    expect(result).toEqual(ok(page));
+  });
 });

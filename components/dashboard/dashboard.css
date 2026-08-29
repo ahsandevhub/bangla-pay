@@ -1,0 +1,228 @@
+.db-dashboard {
+  --db-bg: oklch(0.165 0.045 300);
+  --db-fg: oklch(0.968 0.01 308);
+  --db-card: oklch(0.212 0.052 302);
+  --db-primary: oklch(0.715 0.235 322);
+  --db-primary-fg: oklch(0.175 0.048 320);
+  --db-secondary: oklch(0.282 0.062 305);
+  --db-secondary-fg: oklch(0.955 0.012 308);
+  --db-muted: oklch(0.268 0.048 303);
+  --db-muted-fg: oklch(0.735 0.032 305);
+  --db-accent: oklch(0.828 0.17 84);
+  --db-accent-fg: oklch(0.205 0.052 62);
+  --db-border: oklch(0.985 0.01 308 / 14%);
+  --db-field: oklch(0.985 0.01 308 / 7%);
+  --db-field-border: oklch(0.985 0.01 308 / 20%);
+  --db-credit: oklch(0.78 0.16 158);
+  --db-credit-surface: oklch(0.78 0.16 158 / 16%);
+  --db-debit: oklch(0.735 0.17 22);
+  --db-debit-surface: oklch(0.735 0.17 22 / 16%);
+  --db-pending: oklch(0.828 0.17 84);
+  --db-pending-surface: oklch(0.828 0.17 84 / 16%);
+  --db-sidebar: oklch(0.192 0.05 301);
+  --db-sidebar-accent: oklch(0.278 0.06 304);
+  --db-grad: linear-gradient(
+    135deg,
+    oklch(0.32 0.145 300) 0%,
+    oklch(0.48 0.23 315) 48%,
+    oklch(0.56 0.27 325) 100%
+  );
+  --db-glow:
+    0 0 0 1px oklch(0.715 0.235 322 / 22%),
+    0 18px 48px -14px oklch(0.715 0.235 322 / 45%);
+  --db-on-grad: oklch(0.985 0.006 320);
+
+  background: var(--db-bg);
+  color: var(--db-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.db-dashboard[data-theme="light"] {
+  --db-bg: oklch(0.992 0.004 305);
+  --db-fg: oklch(0.205 0.045 300);
+  --db-card: oklch(1 0 0);
+  --db-primary: oklch(0.52 0.25 324);
+  --db-primary-fg: oklch(0.985 0.006 320);
+  --db-secondary: oklch(0.958 0.016 310);
+  --db-secondary-fg: oklch(0.32 0.09 305);
+  --db-muted: oklch(0.962 0.01 305);
+  --db-muted-fg: oklch(0.505 0.038 300);
+  --db-accent: oklch(0.86 0.155 87);
+  --db-accent-fg: oklch(0.27 0.055 62);
+  --db-border: oklch(0.91 0.016 308);
+  --db-field: oklch(0.995 0.004 305);
+  --db-field-border: oklch(0.895 0.02 308);
+  --db-credit: oklch(0.5 0.14 158);
+  --db-credit-surface: oklch(0.955 0.035 158);
+  --db-debit: oklch(0.545 0.19 24);
+  --db-debit-surface: oklch(0.96 0.028 24);
+  --db-pending: oklch(0.56 0.13 72);
+  --db-pending-surface: oklch(0.962 0.045 82);
+  --db-sidebar: oklch(0.975 0.012 308);
+  --db-sidebar-accent: oklch(0.94 0.024 312);
+  --db-glow:
+    0 0 0 1px oklch(0.52 0.25 324 / 14%),
+    0 18px 44px -16px oklch(0.52 0.25 324 / 35%);
+}
+
+.db-dashboard a {
+  color: var(--db-primary);
+  text-decoration: none;
+}
+
+@keyframes db-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.db-toast {
+  animation: db-rise 0.22s ease both;
+}
+
+.db-nav-item:hover {
+  background: var(--db-sidebar-accent);
+  color: var(--db-fg);
+}
+
+.db-hover-primary:hover {
+  border-color: var(--db-primary);
+  color: var(--db-primary);
+}
+
+.db-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.db-btn-white:hover {
+  filter: brightness(0.94);
+}
+
+.db-btn-ghost-white:hover {
+  background: oklch(0.985 0.006 320 / 12%);
+}
+
+.db-hover-fg:hover {
+  color: var(--db-fg);
+  border-color: var(--db-fg);
+}
+
+.db-chip:hover {
+  border-color: var(--db-primary);
+  color: var(--db-primary);
+}
+
+/* Breakpoints are the one thing inline styles cannot express, so the
+   responsive geometry lives here, keyed to data-el attributes. */
+@media (max-width: 1099px) {
+  .db-dashboard [data-el="sidebar"] {
+    display: none !important;
+  }
+  .db-dashboard [data-el="header"],
+  .db-dashboard [data-el="grid"] {
+    min-width: 0 !important;
+  }
+  .db-dashboard [data-el="grid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 20px 20px 40px !important;
+  }
+  .db-dashboard [data-span] {
+    grid-column: span 2 !important;
+  }
+  .db-dashboard [data-el="route"] {
+    display: none !important;
+  }
+  .db-dashboard [data-el="stats"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 719px) {
+  .db-dashboard [data-el="header"] {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex-wrap: wrap;
+    gap: 10px !important;
+    padding: 14px 16px !important;
+    background: var(--db-bg);
+  }
+  .db-dashboard [data-el="htitle"] {
+    flex: 1 1 100% !important;
+  }
+  .db-dashboard [data-el="htitle"] h1 {
+    font-size: 19px !important;
+  }
+  .db-dashboard [data-el="hsub"] {
+    white-space: normal !important;
+    font-size: 12px !important;
+  }
+  .db-dashboard [data-el="hcta"] {
+    display: none !important;
+  }
+  .db-dashboard [data-el="hctrl"] {
+    flex: 1 1 100% !important;
+    justify-content: space-between;
+  }
+  .db-dashboard [data-el="grid"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+    padding: 16px 16px 108px !important;
+  }
+  .db-dashboard [data-span] {
+    grid-column: span 1 !important;
+  }
+  .db-dashboard [data-el="bigamt"] {
+    font-size: 34px !important;
+  }
+  .db-dashboard [data-el="pad"] {
+    padding: 18px 16px !important;
+  }
+  .db-dashboard [data-el="fieldgrid"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .db-dashboard [data-el="chip"] {
+    padding: 10px 15px !important;
+  }
+  .db-dashboard [data-el="reqbtn"] {
+    padding: 12px 0 !important;
+  }
+  .db-dashboard [data-el="txnhead"] {
+    display: none !important;
+  }
+  .db-dashboard [data-el="txnrow"] {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    padding: 12px 16px !important;
+  }
+  .db-dashboard [data-col] {
+    display: none !important;
+  }
+  .db-dashboard [data-el="mnote"] {
+    display: block !important;
+  }
+  .db-dashboard [data-el="mledger"] {
+    display: flex !important;
+  }
+  .db-dashboard [data-el="tabbar"] {
+    display: flex !important;
+  }
+  .db-dashboard [data-el="toast"] {
+    left: 16px;
+    right: 16px;
+    bottom: 92px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .db-dashboard [data-el="stats"] {
+    grid-template-columns: 1fr !important;
+  }
+  .db-dashboard [data-el="bigamt"] {
+    font-size: 30px !important;
+  }
+}

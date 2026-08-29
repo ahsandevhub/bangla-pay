@@ -4,7 +4,7 @@ import { type Result, ok, err } from "@/lib/shared/result";
 import { type AppError, appError, defaultMessageForErrorCode } from "@/lib/shared/errors/app-error";
 import { appErrorFromSupabaseError } from "@/lib/shared/errors/from-supabase-error";
 import { poishaToRpcNumber, rpcNumberToPoisha } from "@/lib/shared/domain/money";
-import type { MoneyRequest, RequestSettlement } from "@/lib/requests/request.types";
+import type { MoneyRequest, RequestInboxItem, RequestSettlement } from "@/lib/requests/request.types";
 
 export interface RequestRepository {
   create(params: {
@@ -19,6 +19,8 @@ export interface RequestRepository {
   }): Promise<Result<RequestSettlement, AppError>>;
 
   decline(params: { requestId: string }): Promise<Result<MoneyRequest, AppError>>;
+
+  listPendingForPayer(): Promise<Result<RequestInboxItem[], AppError>>;
 }
 
 export class SupabaseRequestRepository implements RequestRepository {
@@ -86,6 +88,25 @@ export class SupabaseRequestRepository implements RequestRepository {
     }
 
     return ok(toMoneyRequest(data));
+  }
+
+  async listPendingForPayer(): Promise<Result<RequestInboxItem[], AppError>> {
+    const { data, error } = await this.client.rpc("list_pending_requests_for_payer");
+
+    if (error) {
+      return err(appErrorFromSupabaseError(error));
+    }
+
+    return ok(
+      (data ?? []).map((row) => ({
+        id: row.id,
+        requesterWalletNumber: row.requester_wallet_number,
+        amountPoisha: rpcNumberToPoisha(row.amount_poisha),
+        note: row.note,
+        expiresAt: row.expires_at,
+        createdAt: row.created_at,
+      })),
+    );
   }
 }
 

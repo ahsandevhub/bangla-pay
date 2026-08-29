@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { RequestService } from "@/lib/requests/request.service";
 import type { RequestRepository } from "@/lib/requests/request.repository";
-import type { MoneyRequest, RequestSettlement } from "@/lib/requests/request.types";
+import type { MoneyRequest, RequestInboxItem, RequestSettlement } from "@/lib/requests/request.types";
 import { ok, err } from "@/lib/shared/result";
 import { appError } from "@/lib/shared/errors/app-error";
 
@@ -9,6 +9,7 @@ class FakeRequestRepository implements RequestRepository {
   create = vi.fn<RequestRepository["create"]>();
   accept = vi.fn<RequestRepository["accept"]>();
   decline = vi.fn<RequestRepository["decline"]>();
+  listPendingForPayer = vi.fn<RequestRepository["listPendingForPayer"]>();
 }
 
 const sampleRequest: MoneyRequest = {
@@ -82,5 +83,27 @@ describe("RequestService.accept / decline", () => {
     const result = await service.decline({ requestId: "req-1" });
 
     expect(result).toEqual(err(error));
+  });
+});
+
+describe("RequestService.listPendingForPayer", () => {
+  it("passes through the repository's inbox items", async () => {
+    const repo = new FakeRequestRepository();
+    const items: RequestInboxItem[] = [
+      {
+        id: "req-1",
+        requesterWalletNumber: "+8801711000001",
+        amountPoisha: 120000n,
+        note: "lunch",
+        expiresAt: "2026-08-30T00:00:00Z",
+        createdAt: "2026-08-29T00:00:00Z",
+      },
+    ];
+    repo.listPendingForPayer.mockResolvedValue(ok(items));
+    const service = new RequestService(repo);
+
+    const result = await service.listPendingForPayer();
+
+    expect(result).toEqual(ok(items));
   });
 });

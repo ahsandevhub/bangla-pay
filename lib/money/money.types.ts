@@ -10,9 +10,12 @@ export type TransferOutcome = {
 export type TransactionHistoryItem = {
   ledgerEntryId: number;
   transactionId: string;
+  type: "INITIAL_FUNDING" | "TRANSFER" | "REQUEST_SETTLEMENT";
   direction: "DEBIT" | "CREDIT";
   amountPoisha: bigint;
   balanceAfterPoisha: bigint;
+  note: string | null;
+  counterpartyWalletNumber: string;
   createdAt: string;
 };
 

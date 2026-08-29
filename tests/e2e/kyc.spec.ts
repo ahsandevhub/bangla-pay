@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { pool } from "../integration/db";
+import { randomTestPhone, registerAndLogIn as registerAndLogInShared, seedFakeNidRecord } from "./helpers";
 
 // Real integration, not the old client-side simulation: registers a fresh
 // user via the actual auth API (context.request shares its cookie jar with
@@ -11,40 +11,8 @@ import { pool } from "../integration/db";
 // filled in manually in the review step, exactly as a user would if OCR
 // only caught the English side.
 
-function randomDigits(length: number): string {
-  return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
-}
-
-function randomTestPhone(): string {
-  return `01${"3456789"[Math.floor(Math.random() * 7)]}${randomDigits(8)}`;
-}
-
-async function seedFakeNidRecord(overrides?: { dateOfBirth?: string; englishName?: string }) {
-  const nidNumber = randomDigits(17);
-  const dateOfBirth = overrides?.dateOfBirth ?? "1992-01-15";
-  const englishName = overrides?.englishName ?? "Test Kyc User";
-  await pool.query(
-    "insert into public.fake_nid_records (nid_number, date_of_birth, bangla_name, english_name) values ($1, $2, $3, $4)",
-    [nidNumber, dateOfBirth, "টেস্ট ইউজার", englishName],
-  );
-  return { nidNumber, dateOfBirth, englishName };
-}
-
 async function registerAndLogIn(page: Page, phone: string) {
-  const pin = "6284";
-  const sendRes = await page.context().request.post("/api/auth/otp/send", {
-    data: { phone, purpose: "REGISTRATION" },
-  });
-  const { data: sendData } = await sendRes.json();
-  const smsRes = await page.context().request.get(`/api/demo/sms?inboxToken=${sendData.inboxToken}`);
-  const { data: smsData } = await smsRes.json();
-  await page.context().request.post("/api/auth/otp/verify", {
-    data: { phone, purpose: "REGISTRATION", code: smsData.code },
-  });
-  const setupRes = await page.context().request.post("/api/auth/pin/setup", {
-    data: { phone, pin, confirmPin: pin },
-  });
-  expect(setupRes.ok()).toBe(true);
+  await registerAndLogInShared(page.context().request, phone);
 }
 
 /** Draws a synthetic NID-front image on an in-page canvas and returns it as a PNG buffer, for real OCR to read. */
