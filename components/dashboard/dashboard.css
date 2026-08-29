@@ -34,7 +34,17 @@
 
   background: var(--db-bg);
   color: var(--db-fg);
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
+}
+
+.db-dashboard *,
+.db-dashboard *::before,
+.db-dashboard *::after {
+  box-sizing: border-box;
 }
 
 .db-dashboard[data-theme="light"] {
@@ -89,6 +99,17 @@
   color: var(--db-fg);
 }
 
+.db-nav-item[aria-current="page"],
+.db-mobile-nav-item[aria-current="page"] {
+  background: var(--db-sidebar-accent) !important;
+  color: var(--db-primary) !important;
+  font-weight: 700 !important;
+}
+
+.db-dashboard [data-section] {
+  scroll-margin-top: 96px;
+}
+
 .db-hover-primary:hover {
   border-color: var(--db-primary);
   color: var(--db-primary);
@@ -119,6 +140,12 @@
 /* Breakpoints are the one thing inline styles cannot express, so the
    responsive geometry lives here, keyed to data-el attributes. */
 @media (max-width: 1099px) {
+  .db-dashboard main,
+  .db-dashboard [data-span] {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
   .db-dashboard [data-el="sidebar"] {
     display: none !important;
   }
@@ -151,6 +178,8 @@
     gap: 10px !important;
     padding: 14px 16px !important;
     background: var(--db-bg);
+    width: 100%;
+    max-width: 100%;
   }
   .db-dashboard [data-el="htitle"] {
     flex: 1 1 100% !important;
@@ -167,7 +196,22 @@
   }
   .db-dashboard [data-el="hctrl"] {
     flex: 1 1 100% !important;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    justify-content: stretch;
+    min-width: 0;
+  }
+  .db-dashboard [data-el="locale-control"] {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+  .db-dashboard [data-el="theme-control"] {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+  .db-dashboard [data-el="signout"] {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-width: 0;
   }
   .db-dashboard [data-el="grid"] {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -182,6 +226,26 @@
   }
   .db-dashboard [data-el="pad"] {
     padding: 18px 16px !important;
+  }
+  .db-dashboard [data-el="balance-head"] {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+  .db-dashboard [data-el="balance-meta"] {
+    align-items: flex-start !important;
+    max-width: 100%;
+  }
+  .db-dashboard [data-el="balance-meta"] > span:last-child {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .db-dashboard [data-el="balance-actions"],
+  .db-dashboard [data-el="form-head"] {
+    flex-wrap: wrap;
+  }
+  .db-dashboard [data-el="idem"] {
+    display: none !important;
   }
   .db-dashboard [data-el="fieldgrid"] {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -210,6 +274,21 @@
   }
   .db-dashboard [data-el="tabbar"] {
     display: flex !important;
+    width: 100vw;
+    max-width: 100vw;
+    overflow: hidden;
+  }
+  .db-dashboard .db-mobile-nav-item {
+    min-width: 0 !important;
+    padding: 4px 2px !important;
+    border-radius: 9px;
+  }
+  .db-dashboard .db-mobile-nav-item > span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .db-dashboard [data-el="toast"] {
     left: 16px;
@@ -224,5 +303,8 @@
   }
   .db-dashboard [data-el="bigamt"] {
     font-size: 30px !important;
+  }
+  .db-dashboard .db-mobile-nav-item {
+    font-size: 9.5px !important;
   }
 }

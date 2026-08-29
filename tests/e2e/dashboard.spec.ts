@@ -26,6 +26,54 @@ test("renders the balance and wallet number for the logged-in user", async ({ pa
   await expect(page.getByTestId("dashboard-wallet-number")).toHaveText(walletNumber);
 });
 
+test("desktop navigation marks the selected dashboard section active", async ({ page }) => {
+  await registerActiveUser(page.context().request, randomTestPhone());
+  await gotoDashboardEn(page);
+
+  const dashboard = page.getByTestId("dashboard-nav-desktop-dashboard");
+  const send = page.getByTestId("dashboard-nav-desktop-send");
+  const request = page.getByTestId("dashboard-nav-desktop-request");
+  const history = page.getByTestId("dashboard-nav-desktop-history");
+
+  await expect(dashboard).toHaveAttribute("aria-current", "page");
+  await send.click();
+  await expect(send).toHaveAttribute("aria-current", "page");
+  await expect(dashboard).not.toHaveAttribute("aria-current", "page");
+  await request.click();
+  await expect(request).toHaveAttribute("aria-current", "page");
+  await history.click();
+  await expect(history).toHaveAttribute("aria-current", "page");
+});
+
+test.describe("mobile dashboard", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test("stays within the viewport and highlights bottom navigation", async ({ page }) => {
+    await registerActiveUser(page.context().request, randomTestPhone());
+    await gotoDashboardEn(page);
+    await expect(page.getByTestId("dashboard-balance")).toHaveText(INITIAL_FUNDING_BDT);
+
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+    }));
+    expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+    expect(dimensions.bodyWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+
+    const dashboard = page.getByTestId("dashboard-nav-mobile-dashboard");
+    const request = page.getByTestId("dashboard-nav-mobile-request");
+    const history = page.getByTestId("dashboard-nav-mobile-history");
+
+    await expect(dashboard).toHaveAttribute("aria-current", "page");
+    await request.click();
+    await expect(request).toHaveAttribute("aria-current", "page");
+    await history.click();
+    await expect(history).toHaveAttribute("aria-current", "page");
+    await expect(dashboard).not.toHaveAttribute("aria-current", "page");
+  });
+});
+
 test("switches locale and theme", async ({ page }) => {
   const phone = randomTestPhone();
   await registerActiveUser(page.context().request, phone);
