@@ -714,6 +714,7 @@ export type Database = {
       }
       record_pin_failure: { Args: { p_phone: string }; Returns: undefined }
       record_pin_success: { Args: { p_phone: string }; Returns: undefined }
+      refresh_active_session: { Args: never; Returns: undefined }
       request_otp: {
         Args: {
           p_phone: string

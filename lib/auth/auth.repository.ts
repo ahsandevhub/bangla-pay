@@ -34,6 +34,7 @@ export interface AuthRepository {
   assertNotPinLocked(phone: string): Promise<Result<void, AppError>>;
   recordPinFailure(phone: string): Promise<Result<void, AppError>>;
   recordPinSuccess(phone: string): Promise<Result<void, AppError>>;
+  refreshActiveSession(): Promise<Result<void, AppError>>;
   rotateDeviceSession(newDeviceTokenHash: string, userAgent: string): Promise<Result<void, AppError>>;
   assertPinNotReused(newFingerprint: string): Promise<Result<void, AppError>>;
   recordPinChange(phone: string, newFingerprint: string): Promise<Result<void, AppError>>;
@@ -201,6 +202,12 @@ export class SupabaseAuthRepository implements AuthRepository {
 
   async recordPinSuccess(phone: string): Promise<Result<void, AppError>> {
     const { error } = await this.client.rpc("record_pin_success", { p_phone: phone });
+    if (error) return err(appErrorFromSupabaseError(error));
+    return ok(undefined);
+  }
+
+  async refreshActiveSession(): Promise<Result<void, AppError>> {
+    const { error } = await this.client.rpc("refresh_active_session");
     if (error) return err(appErrorFromSupabaseError(error));
     return ok(undefined);
   }

@@ -2,6 +2,18 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/supabase/database.types";
 
+// Optimistic redirects only (docs/ARCHITECTURE.md: "proxy.ts performs
+// optimistic redirects only. Protected layouts, services, repositories, and
+// RPC functions perform authoritative checks."). This never decides
+// PENDING_KYC vs ACTIVE -- that would need a DB round trip on every matched
+// request -- it only redirects on whether a session exists at all. The
+// PENDING_KYC-vs-ACTIVE distinction is resolved client-side (auth-flow.tsx
+// right after login/registration, and dashboard-flow.tsx defensively on
+// direct navigation) via the real GET /api/accounts/me call, which is
+// authoritative regardless of what this optimistic check assumed.
+const PROTECTED_PATHS = ["/dashboard", "/kyc"];
+const AUTH_PATHS = ["/login", "/register"];
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -24,7 +36,21 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getClaims();
+  const { data, error } = await supabase.auth.getClaims();
+  const isAuthenticated = !error && !!data?.claims.sub;
+  const path = request.nextUrl.pathname;
+
+  if (!isAuthenticated && PROTECTED_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (isAuthenticated && AUTH_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
 
   return response;
 }

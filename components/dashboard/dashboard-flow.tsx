@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Hind_Siliguri, Anek_Bangla, Baloo_Da_2, JetBrains_Mono } from "next/font/google";
 import {
   Banknote,
@@ -168,6 +169,7 @@ function previewPoisha(raw: string): bigint | null {
 }
 
 export function DashboardFlow() {
+  const router = useRouter();
   const [locale, setLocale] = useState<Locale>("bn");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [tab, setTab] = useState<Tab>("send");
@@ -198,8 +200,17 @@ export function DashboardFlow() {
 
   const loadAccount = useCallback(async () => {
     const res = await apiFetch<AccountSummaryDto>("/api/accounts/me");
-    if (res.ok) setAccount(res.data);
-  }, []);
+    if (res.ok) {
+      setAccount(res.data);
+      return;
+    }
+    // No account yet means KYC hasn't funded one -- reachable by direct
+    // navigation/bookmark/back-button even though proxy.ts's optimistic
+    // check let an authenticated-but-still-PENDING_KYC session through.
+    if (res.error.code === "ACCOUNT_NOT_FOUND") {
+      router.push("/kyc");
+    }
+  }, [router]);
 
   const loadRequests = useCallback(async () => {
     const res = await apiFetch<RequestInboxItemDto[]>("/api/requests");

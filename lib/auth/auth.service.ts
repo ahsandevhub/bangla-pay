@@ -161,6 +161,14 @@ export class AuthService {
     if (trustResult.ok) {
       const signInResult = await this.attemptSignIn(phone, params.pin);
       if (!signInResult.ok) return signInResult;
+      // signInWithPassword always issues a fresh session, even on an
+      // already-trusted device -- without this, active_session_id keeps
+      // pointing at the *previous* login and every RLS check for the rest
+      // of this session incorrectly reads as inactive. See
+      // refresh_active_session()'s comment in the registration/device-trust
+      // migration for how this was found.
+      const refreshResult = await this.auth.refreshActiveSession();
+      if (!refreshResult.ok) return refreshResult;
       return ok({ deviceToken: null });
     }
 

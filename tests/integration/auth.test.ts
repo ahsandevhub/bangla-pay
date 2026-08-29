@@ -286,6 +286,57 @@ describe("device trust and PIN lockout", () => {
       pool.query("select public.assert_device_trusted_for_login($1, $2)", [phone, sha256Hex(user.deviceToken)]),
     ).rejects.toThrow(/DEVICE_UNTRUSTED/);
   });
+
+  // Regression: a trusted-device PIN login calls signInWithPassword again,
+  // which always issues a brand-new GoTrue session -- found by testing the
+  // real login UI end-to-end and seeing GET /api/accounts/me come back
+  // ACCOUNT_NOT_FOUND for an account that plainly existed, because RLS's
+  // current_session_is_active() was still comparing against the *previous*
+  // login's session_id. refresh_active_session() is what the trusted-device
+  // path now calls to fix that pointer up.
+  it("refresh_active_session moves active_session_id to a new session, restoring RLS access", async () => {
+    const phone = randomPhone("96");
+    const user = await registerUser(phone);
+    cleanupUser(user.userId);
+
+    // The "old" session (this account's own registration session) can read
+    // its own profile right after registering.
+    const beforeRead = await withAuthenticatedSession(user, (client) =>
+      client.query("select id from public.profiles where id = $1", [user.userId]),
+    );
+    expect(beforeRead.rows).toHaveLength(1);
+
+    // A second real login issues a brand-new session_id -- simulated here
+    // exactly as it happens for real: same user, unrelated new session id.
+    const newSessionId = randomUUID();
+    await withAuthenticatedSession({ userId: user.userId, sessionId: newSessionId }, (client) =>
+      client.query("select public.refresh_active_session()"),
+    );
+
+    const securityProfile = await pool.query(
+      "select active_session_id from public.security_profiles where user_id = $1",
+      [user.userId],
+    );
+    expect(securityProfile.rows[0].active_session_id).toBe(newSessionId);
+
+    // current_session_is_active() -- what every financial-table RLS policy
+    // and assert_active_session() actually gate on (profiles_select_own
+    // itself only checks ownership, not session activity, so it can't tell
+    // these two states apart) -- now accepts the new session...
+    const afterActive = await withAuthenticatedSession(
+      { userId: user.userId, sessionId: newSessionId },
+      (client) => client.query("select public.current_session_is_active() as active"),
+    );
+    expect(afterActive.rows[0].active).toBe(true);
+
+    // ...and correctly rejects the old session_id, which is exactly what a
+    // real stale access token would still carry -- same as DEVICE_REPLACED
+    // already proves for a rotated device.
+    const staleActive = await withAuthenticatedSession(user, (client) =>
+      client.query("select public.current_session_is_active() as active"),
+    );
+    expect(staleActive.rows[0].active).toBe(false);
+  });
 });
 
 describe("PIN change", () => {

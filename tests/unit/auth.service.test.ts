@@ -24,6 +24,7 @@ class FakeAuthRepository implements AuthRepository {
   assertNotPinLocked = vi.fn<AuthRepository["assertNotPinLocked"]>();
   recordPinFailure = vi.fn<AuthRepository["recordPinFailure"]>();
   recordPinSuccess = vi.fn<AuthRepository["recordPinSuccess"]>();
+  refreshActiveSession = vi.fn<AuthRepository["refreshActiveSession"]>();
   rotateDeviceSession = vi.fn<AuthRepository["rotateDeviceSession"]>();
   assertPinNotReused = vi.fn<AuthRepository["assertPinNotReused"]>();
   recordPinChange = vi.fn<AuthRepository["recordPinChange"]>();
@@ -46,6 +47,7 @@ function passingRepo(): FakeAuthRepository {
   repo.assertNotPinLocked.mockResolvedValue(ok(undefined));
   repo.recordPinFailure.mockResolvedValue(ok(undefined));
   repo.recordPinSuccess.mockResolvedValue(ok(undefined));
+  repo.refreshActiveSession.mockResolvedValue(ok(undefined));
   repo.rotateDeviceSession.mockResolvedValue(ok(undefined));
   repo.assertPinNotReused.mockResolvedValue(ok(undefined));
   repo.recordPinChange.mockResolvedValue(ok(undefined));
@@ -140,6 +142,29 @@ describe("AuthService.login", () => {
     expect(repo.assertNewDeviceLoginAllowed).not.toHaveBeenCalled();
     expect(repo.rotateDeviceSession).not.toHaveBeenCalled();
     expect(repo.recordPinSuccess).toHaveBeenCalledWith("+8801711000001");
+    // Regression: signInWithPassword always issues a brand-new session, even
+    // on an already-trusted device -- without refreshing active_session_id
+    // to match, every RLS check for the rest of this session would
+    // incorrectly read as inactive (found via a real end-to-end login ->
+    // GET /api/accounts/me probe returning ACCOUNT_NOT_FOUND for an account
+    // that plainly existed).
+    expect(repo.refreshActiveSession).toHaveBeenCalled();
+  });
+
+  it("fails the trusted-device login if refreshing the session pointer fails", async () => {
+    const repo = passingRepo();
+    repo.refreshActiveSession.mockResolvedValue(err(appError("INTERNAL_ERROR", "boom")));
+    const service = new AuthService(repo);
+
+    const result = await service.login({
+      phone: "01711000001",
+      pin: "7391",
+      deviceToken: "some-raw-token",
+      userAgent: "test",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("INTERNAL_ERROR");
   });
 
   it("falls back to the new-device (OTP-gated) path on DEVICE_UNTRUSTED", async () => {

@@ -190,6 +190,40 @@ $$;
 
 grant execute on function public.record_pin_success(text) to anon, authenticated;
 
+-- Called after a *trusted-device* PIN login succeeds. signInWithPassword
+-- always issues a brand-new GoTrue session (a new session_id claim), even
+-- when re-authenticating on a browser that's already trusted -- without
+-- this, active_session_id would keep pointing at the *previous* login's
+-- session, and current_session_is_active() (every RLS policy, every
+-- assert_active_session() call) would reject this brand-new-but-legitimate
+-- session for the rest of its life. Found by testing: a trusted-device
+-- re-login followed immediately by GET /api/accounts/me came back
+-- ACCOUNT_NOT_FOUND even though the account plainly existed, because RLS
+-- silently denied the read. Deliberately narrower than rotate_device_session
+-- below -- the device itself is already correctly trusted and unchanged,
+-- only the session pointer is stale.
+create function public.refresh_active_session()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'UNAUTHENTICATED' using errcode = 'P0001';
+  end if;
+
+  update public.security_profiles
+  set active_session_id = (auth.jwt() ->> 'session_id')::uuid,
+      updated_at = now()
+  where user_id = v_user_id;
+end;
+$$;
+
+grant execute on function public.refresh_active_session() to authenticated;
+
 -- Called after a new-device login succeeds (OTP + PIN both verified): trusts
 -- the new device, revokes the old one, and rotates active_device_id /
 -- active_session_id so the old browser's still-valid access token starts

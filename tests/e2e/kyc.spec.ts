@@ -48,6 +48,9 @@ async function uploadSyntheticNidImage(page: Page, lines: string[]) {
 }
 
 test("shows the intro screen with the KYC step highlighted", async ({ page }) => {
+  // /kyc requires an authenticated (PENDING_KYC) session -- proxy.ts
+  // otherwise redirects an unauthenticated visit to /login.
+  await registerAndLogIn(page, randomTestPhone());
   await page.goto("/kyc");
   await expect(page.getByTestId("kyc-intro")).toBeVisible();
   await expect(page.getByTestId("start-nid-scan")).toBeVisible();
@@ -55,6 +58,7 @@ test("shows the intro screen with the KYC step highlighted", async ({ page }) =>
 });
 
 test("requires an image before reading information", async ({ page }) => {
+  await registerAndLogIn(page, randomTestPhone());
   await page.goto("/kyc");
   await page.getByTestId("start-nid-scan").click();
   await page.getByTestId("start-ocr").click();
@@ -63,6 +67,7 @@ test("requires an image before reading information", async ({ page }) => {
 
 test("rejects an invalid NID number", async ({ page }) => {
   test.setTimeout(90_000);
+  await registerAndLogIn(page, randomTestPhone());
   await page.goto("/kyc");
   await uploadSyntheticNidImage(page, ["NATIONAL ID CARD", "Name: Someone", "NID No: 123"]);
   await page.getByTestId("start-ocr").click();
@@ -78,6 +83,7 @@ test("rejects an invalid NID number", async ({ page }) => {
 });
 
 test("switches locale and theme", async ({ page }) => {
+  await registerAndLogIn(page, randomTestPhone());
   await page.goto("/kyc");
   await expect(page.getByTestId("kyc-intro")).toContainText("পরিচয় যাচাই করুন");
 
