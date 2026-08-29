@@ -254,8 +254,19 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = false
+# Must be true: GoTrue's phone_provider_disabled gate applies to the whole
+# provider, not just the public /signup endpoint -- with this false,
+# signInWithPassword({phone, ...}) fails even for a user already created via
+# the Admin API (verified directly against GoTrue's REST API while
+# debugging Phase 4's registration flow). We never call the public
+# supabase.auth.signUp() ourselves (see lib/auth/auth.repository.ts,
+# createAuthUser uses admin.createUser + phone_confirm:true after our own
+# OTP verification), so this only reopens GoTrue's raw /signup endpoint as
+# an unused extra surface -- a self-registered account there would still
+# have no profiles/security_profiles row, and every protected action in
+# this app requires one (RLS ownership checks, assert_active_session()), so
+# it stays functionally inert in the app either way.
+enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
@@ -284,11 +295,19 @@ max_frequency = "5s"
 # enabled = true
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
-# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+# GoTrue requires *some* SMS provider marked enabled before it will allow
+# phone auth at all (password-based sign-in included, even for a user
+# already created via the Admin API) -- confirmed empirically as
+# "no SMS provider is enabled. Disabling phone login" when every provider
+# here was disabled. We never call a Supabase-side OTP send/verify (our own
+# request_otp/verify_otp RPCs replace that entirely, per
+# docs/ARCHITECTURE.md's virtual OTP design) or the public signUp() method,
+# so this placeholder Twilio config only needs to satisfy that gate -- its
+# credentials are dummy and are never used to actually send anything.
 [auth.sms.twilio]
-enabled = false
-account_sid = ""
-message_service_sid = ""
+enabled = true
+account_sid = "ACdummydummydummydummydummydummy0"
+message_service_sid = "MGdummydummydummydummydummydummy0"
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
 auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 

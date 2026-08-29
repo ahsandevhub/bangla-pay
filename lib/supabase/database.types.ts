@@ -264,6 +264,7 @@ export type Database = {
           code_hash: string
           consumed_at: string | null
           created_at: string
+          demo_code: string | null
           expires_at: string
           id: string
           inbox_token: string
@@ -275,6 +276,7 @@ export type Database = {
           code_hash: string
           consumed_at?: string | null
           created_at?: string
+          demo_code?: string | null
           expires_at: string
           id?: string
           inbox_token?: string
@@ -286,6 +288,7 @@ export type Database = {
           code_hash?: string
           consumed_at?: string | null
           created_at?: string
+          demo_code?: string | null
           expires_at?: string
           id?: string
           inbox_token?: string
@@ -584,6 +587,26 @@ export type Database = {
         Returns: undefined
       }
       assert_active_session: { Args: never; Returns: string }
+      assert_device_trusted_for_login: {
+        Args: { p_device_token_hash: string; p_phone: string }
+        Returns: undefined
+      }
+      assert_new_device_login_allowed: {
+        Args: { p_phone: string }
+        Returns: undefined
+      }
+      assert_not_pin_locked: { Args: { p_phone: string }; Returns: undefined }
+      assert_pin_not_reused: {
+        Args: { p_new_fingerprint: string }
+        Returns: undefined
+      }
+      assert_recent_otp_verified: {
+        Args: {
+          p_phone: string
+          p_purpose: Database["public"]["Enums"]["otp_purpose"]
+        }
+        Returns: undefined
+      }
       check_rate_limit: {
         Args: {
           p_action: string
@@ -592,6 +615,15 @@ export type Database = {
           p_window_seconds: number
         }
         Returns: boolean
+      }
+      complete_registration: {
+        Args: {
+          p_device_token_hash: string
+          p_phone: string
+          p_pin_fingerprint: string
+          p_user_agent: string
+        }
+        Returns: undefined
       }
       create_request: {
         Args: {
@@ -641,6 +673,32 @@ export type Database = {
         }
       }
       expire_money_requests: { Args: never; Returns: number }
+      is_phone_registered: { Args: { p_phone: string }; Returns: boolean }
+      read_demo_sms: {
+        Args: { p_inbox_token: string }
+        Returns: {
+          code: string
+          expires_at: string
+          purpose: Database["public"]["Enums"]["otp_purpose"]
+        }[]
+      }
+      record_pin_change: {
+        Args: { p_new_fingerprint: string; p_phone: string }
+        Returns: undefined
+      }
+      record_pin_failure: { Args: { p_phone: string }; Returns: undefined }
+      record_pin_success: { Args: { p_phone: string }; Returns: undefined }
+      request_otp: {
+        Args: {
+          p_phone: string
+          p_purpose: Database["public"]["Enums"]["otp_purpose"]
+        }
+        Returns: string
+      }
+      rotate_device_session: {
+        Args: { p_new_device_token_hash: string; p_user_agent: string }
+        Returns: undefined
+      }
       settle_request: {
         Args: { p_device_token: string; p_request_id: string }
         Returns: {
@@ -681,6 +739,17 @@ export type Database = {
           cached_balance_poisha: number
           ledger_balance_poisha: number
           ok: boolean
+        }[]
+      }
+      verify_otp: {
+        Args: {
+          p_code: string
+          p_phone: string
+          p_purpose: Database["public"]["Enums"]["otp_purpose"]
+        }
+        Returns: {
+          failure_code: string
+          verified: boolean
         }[]
       }
     }

@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ZodType } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
-import type { Result } from "@/lib/shared/result";
+import { type Result, ok, err } from "@/lib/shared/result";
 import {
   type AppError,
   appError,
@@ -10,6 +11,30 @@ import {
   httpStatusForErrorCode,
 } from "@/lib/shared/errors/app-error";
 import { appErrorFromSupabaseError } from "@/lib/shared/errors/from-supabase-error";
+
+/**
+ * Route-boundary Zod validation, per docs/ARCHITECTURE.md ("Route handlers
+ * perform HTTP parsing and Zod validation, then call services"). Every
+ * route needs this identically, so it lives here rather than being
+ * duplicated per handler.
+ */
+export function validateRequest<T>(schema: ZodType<T>, data: unknown): Result<T, AppError> {
+  const parsed = schema.safeParse(data);
+  if (parsed.success) {
+    return ok(parsed.data);
+  }
+
+  // Zod's flatten() return type is generic over the schema's output type,
+  // which is unresolved in this generic context and infers fieldErrors'
+  // value type as `{}` rather than `string[]` -- Array.isArray narrows
+  // around that rather than fighting the inference.
+  const fieldErrors: Record<string, string[]> = {};
+  for (const [field, messages] of Object.entries(parsed.error.flatten().fieldErrors)) {
+    if (Array.isArray(messages)) fieldErrors[field] = messages as string[];
+  }
+
+  return err(appError("VALIDATION_ERROR", defaultMessageForErrorCode("VALIDATION_ERROR"), fieldErrors));
+}
 
 /**
  * The one place that maps a domain Result to an HTTP response, per
@@ -72,6 +97,22 @@ export const DEVICE_TOKEN_COOKIE = "bp_device_token";
  * docs/ARCHITECTURE.md ("services, repositories, and RPC functions perform
  * authoritative checks").
  */
+// 400 days is the practical maximum Chrome/Chromium will honor for a cookie;
+// device trust otherwise persists until explicitly revoked (device
+// replacement), not on a fixed schedule.
+const DEVICE_TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
+
+/** Sets the trusted-device cookie on a response (registration, new-device login). */
+export function setDeviceTokenCookie(response: NextResponse, deviceToken: string): void {
+  response.cookies.set(DEVICE_TOKEN_COOKIE, deviceToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: DEVICE_TOKEN_COOKIE_MAX_AGE_SECONDS,
+  });
+}
+
 export function withActiveDevice<C extends RouteContext>(
   handler: Handler<C & { deviceToken: string }>,
 ): Handler<C> {
