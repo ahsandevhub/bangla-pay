@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { preloadOcrWorker, recognizeNidImage } from "@/lib/kyc/ocr";
 import { Hind_Siliguri, Anek_Bangla, Baloo_Da_2, JetBrains_Mono } from "next/font/google";
 import {
   Banknote,
@@ -26,13 +27,7 @@ import {
   ArrowRight,
   Clock,
 } from "lucide-react";
-import {
-  DEMO,
-  KYC_COPY,
-  fillTemplate,
-  type Locale,
-  type ResultMode,
-} from "@/components/kyc/kyc-content";
+import { KYC_COPY, fillTemplate, type Locale, type ResultMode } from "@/components/kyc/kyc-content";
 import "@/components/kyc/kyc.css";
 
 const hindSiliguri = Hind_Siliguri({
@@ -60,48 +55,51 @@ const headingFontFamily =
 type Step = "intro" | "capture" | "scanning" | "review" | "verifying" | "success" | "error";
 type ErrorKind = "" | ResultMode;
 
-const RESULT_MODES: ResultMode[] = ["success", "mismatch", "duplicate", "unclear", "rate-limited"];
-
 export function KycFlow() {
-  const searchParams = useSearchParams();
-  const resultParam = searchParams.get("result");
-  const resultMode: ResultMode = RESULT_MODES.includes(resultParam as ResultMode)
-    ? (resultParam as ResultMode)
-    : "success";
-
   const [locale, setLocaleState] = useState<Locale>("bn");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [step, setStep] = useState<Step>("intro");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [rotation, setRotation] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState(0);
-  const [fNid, setFNid] = useState(DEMO.nid);
-  const [fDob, setFDob] = useState(DEMO.dob.bn);
-  const [fNameBn, setFNameBn] = useState(DEMO.nameBn);
-  const [fNameEn, setFNameEn] = useState(DEMO.nameEn);
+  const [fNid, setFNid] = useState("");
+  const [fDob, setFDob] = useState("");
+  const [fNameBn, setFNameBn] = useState("");
+  const [fNameEn, setFNameEn] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
   const [errorKind, setErrorKind] = useState<ErrorKind>("");
   const [checksDone, setChecksDone] = useState(0);
   const [cooldown, setCooldown] = useState(0);
+  const [walletNumber, setWalletNumber] = useState("");
+  const [balancePoisha, setBalancePoisha] = useState<string | null>(null);
 
   const t = KYC_COPY[locale];
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const ocrTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const checkTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const stepTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ocrRunId = useRef(0);
 
   function clearAll() {
-    if (ocrTimer.current) clearInterval(ocrTimer.current);
     if (checkTimer.current) clearInterval(checkTimer.current);
     if (cooldownTimer.current) clearInterval(cooldownTimer.current);
     if (stepTimeout.current) clearTimeout(stepTimeout.current);
+    ocrRunId.current += 1; // invalidates any in-flight OCR's progress callback
   }
 
   useEffect(() => clearAll, []);
+
+  // Warms up the OCR worker (WASM + eng/ben language data, ~30MB served
+  // locally) as soon as the user reaches the capture step, so it's likely
+  // already loaded by the time they click "start-ocr" instead of stalling
+  // there on first use.
+  useEffect(() => {
+    if (step === "capture") preloadOcrWorker();
+  }, [step]);
 
   useEffect(
     () => () => {
@@ -114,17 +112,38 @@ export function KycFlow() {
     return n.toLocaleString(locale === "en" ? "en-US" : "bn-BD");
   }
 
+  const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
+  // toLocaleString only converts the digits it formats itself -- a plain
+  // string like the zero-padded poisha fraction below needs manual mapping
+  // to Bangla numerals to match.
+  function toLocaleDigits(asciiDigits: string): string {
+    if (locale !== "bn") return asciiDigits;
+    return asciiDigits.replace(/[0-9]/g, (d) => BN_DIGITS[Number(d)]);
+  }
+
+  // balancePoisha arrives as a string (poisha, e.g. "10000000") -- the API
+  // serializes bigint as a string, per lib/shared/http/handler.ts's
+  // jsonResponse. Formats to a display BDT amount, e.g. "৳1,00,000.00".
+  function formatPoishaAsBdt(poishaText: string): string {
+    const poisha = BigInt(poishaText);
+    const isNegative = poisha < 0n;
+    const magnitude = isNegative ? -poisha : poisha;
+    const taka = num(Number(magnitude / 100n));
+    const fraction = toLocaleDigits((magnitude % 100n).toString().padStart(2, "0"));
+    return `${isNegative ? "-" : ""}৳${taka}.${fraction}`;
+  }
+
   function setLocale(next: Locale) {
-    setFDob((prev) => (prev === DEMO.dob[locale] ? DEMO.dob[next] : prev));
     setLocaleState(next);
     setError("");
   }
 
-  function pickImage(url: string) {
+  function pickImage(url: string, file: File) {
     setImageUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return url;
     });
+    setImageFile(file);
     setRotation(0);
     setError("");
     setDragging(false);
@@ -132,7 +151,7 @@ export function KycFlow() {
 
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) pickImage(URL.createObjectURL(file));
+    if (file) pickImage(URL.createObjectURL(file), file);
   }
 
   function onDragOver(e: DragEvent<HTMLDivElement>) {
@@ -144,7 +163,7 @@ export function KycFlow() {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (file && /^image\//.test(file.type)) {
-      pickImage(URL.createObjectURL(file));
+      pickImage(URL.createObjectURL(file), file);
     } else {
       setDragging(false);
       setError(t.errNoImage);
@@ -157,38 +176,77 @@ export function KycFlow() {
       if (prev) URL.revokeObjectURL(prev);
       return "";
     });
+    setImageFile(null);
     setRotation(0);
     setConsent(false);
     setError("");
   }
 
+  // Matches the backend's kycVerifySchema (10, 13, or 17 digit NIDs).
+  const NID_PATTERN = /^\d{10}$|^\d{13}$|^\d{17}$/;
+
   function runOcr() {
+    if (!imageFile) {
+      setError(t.errNoImage);
+      return;
+    }
     clearAll();
     setStep("scanning");
     setProgress(0);
     setStage(0);
     setError("");
-    ocrTimer.current = setInterval(() => {
-      setProgress((prev) => {
-        const next = Math.min(100, prev + 4);
-        setStage(Math.min(3, Math.floor(next / 26)));
-        if (next >= 100) {
-          if (ocrTimer.current) clearInterval(ocrTimer.current);
-          stepTimeout.current = setTimeout(() => {
-            if (resultMode === "unclear") fail("unclear");
-            else {
-              setStep("review");
-              setError("");
-            }
-          }, 400);
-        }
-        return next;
+
+    const runId = ocrRunId.current;
+    recognizeNidImage(imageFile, (fraction) => {
+      if (ocrRunId.current !== runId) return; // superseded by cancel/retake
+      const pct = Math.round(fraction * 100);
+      setProgress(pct);
+      setStage(Math.min(3, Math.floor(pct / 26)));
+    })
+      .then(({ fields }) => {
+        if (ocrRunId.current !== runId) return;
+        setProgress(100);
+        setStage(3);
+        setFNid(fields.nidNumber);
+        setFDob(fields.dateOfBirth);
+        setFNameBn(fields.banglaName);
+        setFNameEn(fields.englishName);
+        stepTimeout.current = setTimeout(() => {
+          if (ocrRunId.current !== runId) return;
+          setStep("review");
+          setError("");
+        }, 300);
+      })
+      .catch(() => {
+        if (ocrRunId.current !== runId) return;
+        setStep("capture");
+        setError(t.errNoImage);
       });
-    }, 90);
   }
 
-  function verify() {
-    if (!/^\d{10}$/.test(fNid.trim()) || !fDob.trim() || !fNameBn.trim() || !fNameEn.trim()) {
+  function fileExtensionFor(file: File): "jpg" | "jpeg" | "png" | "webp" {
+    const fromName = file.name.split(".").pop()?.toLowerCase();
+    if (fromName === "jpg" || fromName === "jpeg" || fromName === "png" || fromName === "webp") {
+      return fromName;
+    }
+    if (file.type === "image/png") return "png";
+    if (file.type === "image/webp") return "webp";
+    return "jpg";
+  }
+
+  // ACCOUNT_ALREADY_VERIFIED/VALIDATION_ERROR/INTERNAL_ERROR and anything
+  // else unexpected all fall back to "mismatch" -- there's no canned
+  // illustration state for a truly unexpected error, and "please recheck
+  // your details" is a safe generic recommendation either way.
+  function mapErrorCodeToResultMode(code: string): ResultMode {
+    if (code === "KYC_NO_MATCH") return "mismatch";
+    if (code === "NID_ALREADY_USED") return "duplicate";
+    if (code === "KYC_ATTEMPTS_EXCEEDED") return "rate-limited";
+    return "mismatch";
+  }
+
+  async function verify() {
+    if (!NID_PATTERN.test(fNid.trim()) || !fDob.trim() || !fNameBn.trim() || !fNameEn.trim()) {
       setError(t.errFields);
       return;
     }
@@ -196,23 +254,63 @@ export function KycFlow() {
       setError(t.errConsent);
       return;
     }
+    if (!imageFile) {
+      setError(t.errNoImage);
+      return;
+    }
+
     clearAll();
     setStep("verifying");
     setChecksDone(0);
     setError("");
+    // Cosmetic only: our real verify call is one atomic request, not three
+    // separable checks, so this just animates up to 2/3 while it's in
+    // flight and snaps to 3/3 on confirmed success below -- it never claims
+    // a specific check (e.g. "NID matches") succeeded before it actually did.
     checkTimer.current = setInterval(() => {
-      setChecksDone((prev) => {
-        const next = Math.min(3, prev + 1);
-        if (next >= 3) {
-          if (checkTimer.current) clearInterval(checkTimer.current);
-          stepTimeout.current = setTimeout(() => {
-            if (resultMode === "success") setStep("success");
-            else fail(resultMode);
-          }, 600);
-        }
-        return next;
+      setChecksDone((prev) => Math.min(2, prev + 1));
+    }, 500);
+
+    try {
+      const uploadUrlRes = await fetch("/api/kyc/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileExtension: fileExtensionFor(imageFile) }),
       });
-    }, 750);
+      const uploadUrlJson = await uploadUrlRes.json();
+      if (!uploadUrlRes.ok) throw new Error(uploadUrlJson.error?.code ?? "INTERNAL_ERROR");
+      const { path, token } = uploadUrlJson.data as { path: string; token: string };
+
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from("kyc-documents")
+        .uploadToSignedUrl(path, token, imageFile);
+      if (uploadError) throw new Error("INTERNAL_ERROR");
+
+      const verifyRes = await fetch("/api/kyc/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentPath: path,
+          nidNumber: fNid.trim(),
+          dateOfBirth: fDob.trim(),
+          banglaName: fNameBn.trim() || undefined,
+          englishName: fNameEn.trim() || undefined,
+        }),
+      });
+      const verifyJson = await verifyRes.json();
+      if (!verifyRes.ok) throw new Error(verifyJson.error?.code ?? "INTERNAL_ERROR");
+
+      clearAll();
+      setChecksDone(3);
+      setWalletNumber(verifyJson.data.walletNumber);
+      setBalancePoisha(verifyJson.data.balancePoisha);
+      stepTimeout.current = setTimeout(() => setStep("success"), 300);
+    } catch (thrown) {
+      clearAll();
+      const code = thrown instanceof Error ? thrown.message : "INTERNAL_ERROR";
+      fail(mapErrorCodeToResultMode(code));
+    }
   }
 
   function fail(kind: ResultMode) {
@@ -1043,7 +1141,7 @@ export function KycFlow() {
                   <input
                     value={fNid}
                     onChange={(e) => {
-                      setFNid(e.target.value.replace(/\D/g, "").slice(0, 10));
+                      setFNid(e.target.value.replace(/\D/g, "").slice(0, 17));
                       setError("");
                     }}
                     inputMode="numeric"
@@ -1074,6 +1172,7 @@ export function KycFlow() {
                     </span>
                   </span>
                   <input
+                    type="date"
                     value={fDob}
                     onChange={(e) => {
                       setFDob(e.target.value);
@@ -1214,8 +1313,14 @@ export function KycFlow() {
                   {(
                     [
                       { label: t.sumKyc, value: t.sumVerified, testid: "verified-status", mono: false, color: "var(--ky-credit)" },
-                      { label: t.sumWallet, value: DEMO.wallet, testid: "wallet-number", mono: true, color: "var(--ky-fg)" },
-                      { label: t.sumBalance, value: t.sumBalanceValue, testid: "opening-balance", mono: true, color: "var(--ky-fg)" },
+                      { label: t.sumWallet, value: walletNumber, testid: "wallet-number", mono: true, color: "var(--ky-fg)" },
+                      {
+                        label: t.sumBalance,
+                        value: balancePoisha ? formatPoishaAsBdt(balancePoisha) : "",
+                        testid: "opening-balance",
+                        mono: true,
+                        color: "var(--ky-fg)",
+                      },
                       { label: t.sumType, value: t.sumTypeValue, testid: "funding-type", mono: false, color: "var(--ky-fg)" },
                       { label: t.sumLedger, value: t.sumLedgerValue, testid: "funding-ledger-status", mono: false, color: "var(--ky-credit)" },
                     ] as const

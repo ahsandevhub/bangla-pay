@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Tesseract.js worker/core/lang-data (see public/tesseract/README.md)
+    // -- minified/generated third-party files, not project source.
+    "public/tesseract/**",
   ]),
 ]);
 

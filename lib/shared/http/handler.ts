@@ -37,6 +37,21 @@ export function validateRequest<T>(schema: ZodType<T>, data: unknown): Result<T,
 }
 
 /**
+ * Money crosses the HTTP boundary as `bigint` (KycVerificationOutcome,
+ * eventually TransferOutcome/AccountSummary in Phase 6) -- plain
+ * NextResponse.json() calls JSON.stringify() internally, which throws
+ * "Do not know how to serialize a BigInt" outright. Confirmed by testing:
+ * this would have 500'd every successful /api/kyc/verify response. Building
+ * the Response manually with a stringify replacer is the one place this
+ * needs handling, rather than converting bigint -> string in every type
+ * that might eventually hold money.
+ */
+function jsonResponse(body: unknown, status: number): NextResponse {
+  const json = JSON.stringify(body, (_key, value) => (typeof value === "bigint" ? value.toString() : value));
+  return new NextResponse(json, { status, headers: { "content-type": "application/json" } });
+}
+
+/**
  * The one place that maps a domain Result to an HTTP response, per
  * docs/ARCHITECTURE.md ("Only the shared HTTP handler maps domain codes to
  * status codes and public messages"). Route handlers should never construct
@@ -44,12 +59,9 @@ export function validateRequest<T>(schema: ZodType<T>, data: unknown): Result<T,
  */
 export function toResponse<T>(result: Result<T, AppError>): NextResponse {
   if (result.ok) {
-    return NextResponse.json({ data: result.value });
+    return jsonResponse({ data: result.value }, 200);
   }
-  return NextResponse.json(
-    { error: result.error },
-    { status: httpStatusForErrorCode(result.error.code) },
-  );
+  return jsonResponse({ error: result.error }, httpStatusForErrorCode(result.error.code));
 }
 
 function errorResponse(code: Parameters<typeof appError>[0]): NextResponse {
