@@ -63,6 +63,7 @@ const monoFontFamily =
   "var(--db-font-mono), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
 
 type Tab = "send" | "request";
+type DashboardNav = "dashboard" | "send" | "request" | "history" | "reconcile";
 type ToastKey = "toastRequested" | "toastDeclined";
 type ToastState = { key: ToastKey; params: Record<string, string> } | null;
 
@@ -174,6 +175,7 @@ export function DashboardFlow() {
   const [locale, setLocale] = useState<Locale>("bn");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [tab, setTab] = useState<Tab>("send");
+  const [activeNav, setActiveNav] = useState<DashboardNav>("dashboard");
   const [toWallet, setToWallet] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -196,6 +198,8 @@ export function DashboardFlow() {
 
   const t = DASHBOARD_COPY[locale];
   const amountRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLElement | null>(null);
+  const historyRef = useRef<HTMLElement | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const num = useCallback((n: number) => n.toLocaleString(locale === "bn" ? "bn-BD" : "en-US"), [locale]);
@@ -274,9 +278,38 @@ export function DashboardFlow() {
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   }
 
+  function scrollToSection(ref: { current: HTMLElement | null }) {
+    setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function showDashboard() {
+    setActiveNav("dashboard");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function focusAmount() {
+    setActiveNav("send");
     setTab("send");
-    setTimeout(() => amountRef.current?.focus(), 0);
+    setError("");
+    scrollToSection(formRef);
+    setTimeout(() => amountRef.current?.focus(), 350);
+  }
+
+  function showRequestForm() {
+    setActiveNav("request");
+    setTab("request");
+    setError("");
+    scrollToSection(formRef);
+  }
+
+  function showHistory() {
+    setActiveNav("history");
+    scrollToSection(historyRef);
+  }
+
+  function showReconcile() {
+    setActiveNav("reconcile");
+    scrollToSection(historyRef);
   }
 
   function formatTimestamp(iso: string): string {
@@ -457,6 +490,11 @@ export function DashboardFlow() {
     fontWeight: 500,
     color: "var(--db-muted-fg)",
     cursor: "pointer",
+    width: "100%",
+    border: "none",
+    background: "transparent",
+    textAlign: "left",
+    fontFamily: "inherit",
   } as const;
 
   return (
@@ -506,34 +544,38 @@ export function DashboardFlow() {
         </div>
 
         <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <div
+          <button
+            type="button"
+            className="db-nav-item"
+            data-testid="dashboard-nav-desktop-dashboard"
+            aria-current={activeNav === "dashboard" ? "page" : undefined}
+            onClick={showDashboard}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "9px 12px",
-              borderRadius: 9,
-              background: "var(--db-sidebar-accent)",
-              fontSize: 13.5,
+              ...navItemStyle,
               fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             <LayoutDashboard size={16} strokeWidth={2} color="var(--db-primary)" aria-hidden="true" />
             <span>{t.navDashboard}</span>
-            <span style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: "var(--db-primary)" }} />
-          </div>
-          <div className="db-nav-item" style={navItemStyle} onClick={focusAmount}>
+          </button>
+          <button
+            type="button"
+            className="db-nav-item"
+            data-testid="dashboard-nav-desktop-send"
+            aria-current={activeNav === "send" ? "page" : undefined}
+            style={navItemStyle}
+            onClick={focusAmount}
+          >
             <Send size={16} strokeWidth={2} aria-hidden="true" />
             <span>{t.navSend}</span>
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             className="db-nav-item"
+            data-testid="dashboard-nav-desktop-request"
+            aria-current={activeNav === "request" ? "page" : undefined}
             style={navItemStyle}
-            onClick={() => {
-              setTab("request");
-              setError("");
-            }}
+            onClick={showRequestForm}
           >
             <HandCoins size={16} strokeWidth={2} aria-hidden="true" />
             <span>{t.navRequests}</span>
@@ -556,15 +598,29 @@ export function DashboardFlow() {
             >
               {num(requests.length)}
             </span>
-          </div>
-          <div className="db-nav-item" style={navItemStyle}>
+          </button>
+          <button
+            type="button"
+            className="db-nav-item"
+            data-testid="dashboard-nav-desktop-history"
+            aria-current={activeNav === "history" ? "page" : undefined}
+            style={navItemStyle}
+            onClick={showHistory}
+          >
             <History size={16} strokeWidth={2} aria-hidden="true" />
             <span>{t.navHistory}</span>
-          </div>
-          <div className="db-nav-item" style={navItemStyle}>
+          </button>
+          <button
+            type="button"
+            className="db-nav-item"
+            data-testid="dashboard-nav-desktop-reconcile"
+            aria-current={activeNav === "reconcile" ? "page" : undefined}
+            style={navItemStyle}
+            onClick={showReconcile}
+          >
             <Scale size={16} strokeWidth={2} aria-hidden="true" />
             <span>{t.navReconcile}</span>
-          </div>
+          </button>
         </nav>
 
         <div style={{ flex: 1 }} />
@@ -651,6 +707,7 @@ export function DashboardFlow() {
               {"/" + locale + "/dashboard"}
             </span>
             <div
+              data-el="locale-control"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -702,6 +759,7 @@ export function DashboardFlow() {
               </button>
             </div>
             <div
+              data-el="theme-control"
               style={{
                 display: "flex",
                 padding: 3,
@@ -753,6 +811,7 @@ export function DashboardFlow() {
               </button>
             </div>
             <button
+              data-el="signout"
               type="button"
               data-testid="dashboard-sign-out-button"
               onClick={handleSignOut}
@@ -847,7 +906,7 @@ export function DashboardFlow() {
               gap: 20,
             }}
           >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20 }}>
+            <div data-el="balance-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.75 }}>
                   {t.balanceLabel}
@@ -870,7 +929,7 @@ export function DashboardFlow() {
                   {account ? fillTemplate(t.poisha, { n: num(Number(BigInt(account.balancePoisha))) }) : ""}
                 </span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flex: "0 0 auto" }}>
+              <div data-el="balance-meta" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flex: "0 0 auto" }}>
                 <span
                   style={{
                     display: "flex",
@@ -889,7 +948,7 @@ export function DashboardFlow() {
                 <span style={{ fontFamily: monoFontFamily, fontSize: 12.5, opacity: 0.85 }}>{account?.walletNumber ?? ""}</span>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div data-el="balance-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button
                 type="button"
                 onClick={focusAmount}
@@ -914,10 +973,7 @@ export function DashboardFlow() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setTab("request");
-                  setError("");
-                }}
+                onClick={showRequestForm}
                 data-testid="dashboard-request-button"
                 className="db-btn-ghost-white"
                 style={{
@@ -988,7 +1044,9 @@ export function DashboardFlow() {
           </div>
 
           <section
+            ref={formRef}
             data-el="pad"
+            data-section="money-form"
             data-span="2"
             style={{
               gridColumn: "span 2",
@@ -1001,11 +1059,12 @@ export function DashboardFlow() {
               gap: 18,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+            <div data-el="form-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
               <div style={{ display: "flex", padding: 3, gap: 3, background: "var(--db-muted)", borderRadius: 10 }}>
                 <button
                   type="button"
                   onClick={() => {
+                    setActiveNav("send");
                     setTab("send");
                     setError("");
                   }}
@@ -1025,6 +1084,7 @@ export function DashboardFlow() {
                 <button
                   type="button"
                   onClick={() => {
+                    setActiveNav("request");
                     setTab("request");
                     setError("");
                   }}
@@ -1042,7 +1102,7 @@ export function DashboardFlow() {
                   {t.tabRequest}
                 </button>
               </div>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)" }}>
+              <span data-el="idem" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: monoFontFamily, fontSize: 11, color: "var(--db-muted-fg)" }}>
                 <KeyRound size={13} strokeWidth={2} aria-hidden="true" />
                 <span>Idempotency-Key: {idem || "…"}</span>
               </span>
@@ -1372,6 +1432,8 @@ export function DashboardFlow() {
           </section>
 
           <section
+            ref={historyRef}
+            data-section="history"
             data-span="3"
             style={{ gridColumn: "span 3", background: "var(--db-card)", border: "1px solid var(--db-border)", borderRadius: 14, overflow: "hidden" }}
           >
@@ -1546,6 +1608,10 @@ export function DashboardFlow() {
       >
         <button
           type="button"
+          className="db-mobile-nav-item"
+          data-testid="dashboard-nav-mobile-dashboard"
+          aria-current={activeNav === "dashboard" ? "page" : undefined}
+          onClick={showDashboard}
           style={{
             flex: 1,
             minHeight: 52,
@@ -1558,8 +1624,8 @@ export function DashboardFlow() {
             background: "transparent",
             cursor: "pointer",
             fontSize: 10.5,
-            fontWeight: 700,
-            color: "var(--db-primary)",
+            fontWeight: 600,
+            color: "var(--db-muted-fg)",
           }}
         >
           <LayoutDashboard size={19} strokeWidth={2} aria-hidden="true" />
@@ -1567,6 +1633,9 @@ export function DashboardFlow() {
         </button>
         <button
           type="button"
+          className="db-mobile-nav-item"
+          data-testid="dashboard-nav-mobile-send"
+          aria-current={activeNav === "send" ? "page" : undefined}
           onClick={focusAmount}
           style={{
             flex: 1,
@@ -1589,10 +1658,10 @@ export function DashboardFlow() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            setTab("request");
-            setError("");
-          }}
+          className="db-mobile-nav-item"
+          data-testid="dashboard-nav-mobile-request"
+          aria-current={activeNav === "request" ? "page" : undefined}
+          onClick={showRequestForm}
           style={{
             position: "relative",
             flex: 1,
@@ -1636,6 +1705,10 @@ export function DashboardFlow() {
         </button>
         <button
           type="button"
+          className="db-mobile-nav-item"
+          data-testid="dashboard-nav-mobile-history"
+          aria-current={activeNav === "history" ? "page" : undefined}
+          onClick={showHistory}
           style={{
             flex: 1,
             minHeight: 52,
