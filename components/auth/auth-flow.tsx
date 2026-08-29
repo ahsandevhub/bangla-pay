@@ -53,6 +53,11 @@ const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--au-font-
 const headingFontFamily =
   "var(--font-baloo-da-2), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
 
+// JetBrains Mono has no Bengali glyphs, so digits/labels in Bangla fall
+// through to Anek Bangla/Hind Siliguri instead of an unstyled system font.
+const monoFontFamily =
+  "var(--au-font-mono), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
+
 type Step = "phone" | "otp" | "pin" | "confirm" | "done";
 
 const EMPTY_OTP = ["", "", "", "", "", ""];
@@ -527,7 +532,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                     }}
                   >
                     <Smartphone size={16} strokeWidth={2} color="var(--au-muted-fg)" aria-hidden="true" />
-                    <span style={{ fontFamily: "var(--au-font-mono)", fontSize: 14, color: "var(--au-muted-fg)" }}>
+                    <span style={{ fontFamily: monoFontFamily, fontSize: 14, color: "var(--au-muted-fg)" }}>
                       +88
                     </span>
                     <input
@@ -546,7 +551,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                         border: "none",
                         background: "transparent",
                         color: "var(--au-fg)",
-                        fontFamily: "var(--au-font-mono)",
+                        fontFamily: monoFontFamily,
                         fontSize: 15,
                         outline: "none",
                       }}
@@ -627,7 +632,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                         border: "1px solid var(--au-field-border)",
                         background: "var(--au-field)",
                         color: "var(--au-fg)",
-                        fontFamily: "var(--au-font-mono)",
+                        fontFamily: monoFontFamily,
                         fontSize: 19,
                         fontWeight: 600,
                       }}
@@ -644,7 +649,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                       borderRadius: 999,
                       background: "var(--au-credit-surface)",
                       color: "var(--au-credit)",
-                      fontFamily: "var(--au-font-mono)",
+                      fontFamily: monoFontFamily,
                       fontSize: 11.5,
                       fontWeight: 600,
                     }}
@@ -780,7 +785,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                         border: "1px solid var(--au-field-border)",
                         background: "var(--au-field)",
                         color: "var(--au-fg)",
-                        fontFamily: "var(--au-font-mono)",
+                        fontFamily: monoFontFamily,
                         fontSize: 19,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -818,7 +823,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                       border: "1px solid var(--au-field-border)",
                       background: "var(--au-field)",
                       color: "var(--au-fg)",
-                      fontFamily: "var(--au-font-mono)",
+                      fontFamily: monoFontFamily,
                       fontSize: 19,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -869,7 +874,7 @@ export function AuthFlow({ mode }: { mode: AuthMode }) {
                 <span style={{ fontSize: 13.5, color: "var(--au-muted-fg)", lineHeight: 1.55, maxWidth: "30ch" }}>
                   {isLogin ? t.doneSubLogin : t.doneSubSignup}
                 </span>
-                <span style={{ fontFamily: "var(--au-font-mono)", fontSize: 12, color: "var(--au-muted-fg)" }}>
+                <span style={{ fontFamily: monoFontFamily, fontSize: 12, color: "var(--au-muted-fg)" }}>
                   {fillTemplate(t.redirecting, { s: num(redirect) })}
                 </span>
                 <Link
