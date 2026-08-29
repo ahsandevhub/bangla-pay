@@ -184,6 +184,7 @@ POST /api/auth/otp/verify
 POST /api/auth/pin/setup
 POST /api/auth/pin/login
 POST /api/auth/pin/change
+POST /api/auth/signout
 GET  /api/demo/sms
 POST /api/kyc/upload-url
 POST /api/kyc/verify

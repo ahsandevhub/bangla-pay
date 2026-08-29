@@ -193,6 +193,10 @@ export class AuthService {
     return ok({ deviceToken });
   }
 
+  signOut(): Promise<Result<void, AppError>> {
+    return this.auth.signOut();
+  }
+
   private async attemptSignIn(phone: string, pin: string): Promise<Result<void, AppError>> {
     const passwordCredential = derivePasswordCredential(phone, pin);
     const signInResult = await this.auth.signInWithPassword(phone, passwordCredential);

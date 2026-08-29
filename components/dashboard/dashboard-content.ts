@@ -14,6 +14,8 @@ export interface DashboardCopy {
   headerSub: string;
   light: string;
   dark: string;
+  signOut: string;
+  signingOut: string;
   balanceLabel: string;
   active: string;
   send: string;
@@ -102,6 +104,8 @@ export const DASHBOARD_COPY: Record<Locale, DashboardCopy> = {
     headerSub: "ব্যালেন্স সব সময় প্রাইমারি ডেটাবেস থেকে পড়া হয় — ক্যাশ থেকে নয়।",
     light: "লাইট",
     dark: "ডার্ক",
+    signOut: "সাইন আউট",
+    signingOut: "সাইন আউট হচ্ছে…",
     balanceLabel: "ব্যবহারযোগ্য ব্যালেন্স",
     active: "সক্রিয়",
     send: "পাঠান",
@@ -188,6 +192,8 @@ export const DASHBOARD_COPY: Record<Locale, DashboardCopy> = {
     headerSub: "Balances are read from the primary — never from cache.",
     light: "Light",
     dark: "Dark",
+    signOut: "Sign out",
+    signingOut: "Signing out…",
     balanceLabel: "Available balance",
     active: "ACTIVE",
     send: "Send",
