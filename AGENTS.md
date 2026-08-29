@@ -11,6 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Project workflow
 
 - Use the root-level `app/`, `components/`, `lib/`, and `tests/` directories. Do not create a `src/` directory.
+- Read `docs/ARCHITECTURE.md` and `docs/DEVELOPMENT-WORKFLOW.md` before implementing BanglaPay features. Treat the architecture contract and phase exit gates as project requirements.
 - Keep the Next.js App Router and Server Components as the default. Add `"use client"` only when browser APIs, event handlers, or client-only libraries require it.
 - Before introducing or changing an integration, verify its current official documentation and prefer the installed latest-compatible package configuration.
 - Use shadcn/ui components from `components/ui/`. This project uses the Base UI preset and Tailwind CSS v4; add components with `npx shadcn@latest add <component>`.
@@ -26,5 +27,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Quality and collaboration
 
 - Run `npm run lint`, `npm run test:run`, and `npm run build` after meaningful changes. Run `npm run test:e2e` for user-facing flow changes.
+- Ahsan Habib owns application code, migrations, deployment, and documentation. Md. Saiful Islam owns automated tests, manual regression, and defect reporting; coordinate before crossing these ownership boundaries.
 - Keep commits small and focused. Work from `feat/<area>`, `fix/<area>`, or `chore/<area>` branches, and do not modify another teammate's claimed files without coordination.
 - Update `README.md` when setup commands, environment variables, deployment, or the team workflow changes.

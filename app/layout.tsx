@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PSTU National Hackathon 2026",
-  description: "Hackathon starter built with Next.js and Supabase.",
+  title: "BanglaPay (বাংলা-পে)",
+  description:
+    "A simulated Bangladesh mobile financial service with OTP, PIN, KYC, and a double-entry ledger wallet.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

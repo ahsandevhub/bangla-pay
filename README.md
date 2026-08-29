@@ -1,52 +1,82 @@
-# PSTU National Hackathon 2026
+# BanglaPay (বাংলা-পে)
 
-Starter repository for Ahsan Habib and Md. Saiful Islam. Replace this section with the challenge problem statement when it is announced.
+BanglaPay is a simulated mobile financial service built for the PSTU National Hackathon 2026. It demonstrates trustworthy money movement through mobile registration, virtual OTP, secure PIN authentication, OCR-assisted NID KYC, one active device, fake BDT wallets, transfers, payment requests, receipts, and an append-only double-entry ledger.
+
+This is an educational closed ecosystem. It does not process real money or connect to real NID, banking, card, mobile operator, or payment services.
+
+## Team
+
+- **Ahsan Habib:** application, architecture, database, UI, deployment, and documentation
+- **Md. Saiful Islam:** automated testing, manual regression, production smoke testing, and defect reporting
+
+## Architecture
+
+```text
+Next.js route
+    -> service
+        -> repository
+            -> PostgreSQL RPC
+                -> accounts + append-only double-entry ledger
+```
+
+Money is stored as `bigint` poisha, financial writes execute atomically in PostgreSQL, and cached account balances must always reconcile with the ledger. Read the complete [architecture contract](docs/ARCHITECTURE.md) before changing application behavior.
+
+The full six-hour build order, team handoffs, phase gates, test matrix, deployment checks, and demo sequence are in the [development workflow checklist](docs/DEVELOPMENT-WORKFLOW.md).
 
 ## Stack
 
-- Next.js App Router, TypeScript, and Tailwind CSS v4
-- shadcn/ui with the Base UI component library
-- Supabase for PostgreSQL, Auth, Storage, and local development
-- Vitest for unit tests and Playwright for end-to-end smoke tests
+- Next.js 16 App Router, React 19, TypeScript, and Tailwind CSS v4
+- shadcn/ui with the Base UI preset
+- Supabase PostgreSQL, Auth, Storage, CLI, and local Docker stack
+- Vitest for unit and integration tests
+- Playwright for the critical browser workflow
 - Vercel for deployment
 
 ## Local Setup
 
-1. Install Node.js 24 LTS. Docker Desktop is optional when local virtualization is unavailable.
+1. Install Node.js 24 LTS, Git, Docker Desktop, and Playwright Chromium.
 2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and provide the hosted Supabase values.
-4. Run `npm run dev` and open `http://localhost:3000`.
+3. Copy `.env.example` to `.env.local` and add local or hosted Supabase values.
+4. Start Supabase with `npm run db:start`.
+5. Rebuild the database with `npm run db:reset`.
+6. Start Next.js with `npm run dev` and open `http://localhost:3000`.
 
-## Supabase
+Never commit `.env.local`, Supabase secret/service-role keys, the application pepper, reconciliation token, OTPs, PINs, device tokens, or NID data.
 
-Run `npm run db:start` to start the local Supabase stack. Use `npm run db:status` to copy the local API URL and publishable key when needed. Stop the stack with `npm run db:stop`.
+## Supabase Workflow
 
-If Docker Desktop cannot start because virtualization is unavailable, use the hosted Supabase project for development until virtualization is enabled. Keep all schema work in committed migrations so the local stack can be adopted later without rewriting the database.
+Create each database change with `npx supabase migration new <feature-name>`, edit the generated SQL, and verify the complete history with `npm run db:reset`.
 
-Create every database change with `npx supabase migration new <feature-name>`, edit the generated SQL under `supabase/migrations/`, and verify it with `npm run db:reset`. Apply the reviewed migrations to the hosted project before deployment.
+After schema changes, regenerate types:
 
-After a schema change, regenerate types with `npx supabase gen types typescript --local > lib/supabase/database.types.ts` while the local stack is running. For the hosted database, add `--project-id <project-id>` after linking the CLI.
+```bash
+npx supabase gen types typescript --local > lib/supabase/database.types.ts
+```
 
-## Tests
+Use `npm run db:status` to inspect local URLs and keys and `npm run db:stop` when finished. Apply only reviewed migrations to the hosted project.
 
-- `npm run lint` checks code quality.
-- `npm test` runs Vitest in watch mode.
-- `npm run test:run` runs unit tests once.
-- `npm run test:e2e` runs Playwright against the local app.
-- `npm run test:ci` runs lint, unit tests, and end-to-end tests.
+## Verification
 
-Run `npx playwright install chromium` once on each laptop before the first end-to-end test.
+```bash
+npm run lint
+npm run test:run
+npm run test:e2e
+npm run build
+```
 
-## Team Workflow
+Financial integration tests must use the real local PostgreSQL database. Database mocks cannot verify locks, constraints, idempotency, or concurrent updates.
 
-Use a short-lived branch for each focused task: `feat/<area>`, `fix/<area>`, or `chore/<area>`. Before beginning, pull `main`, create the branch, and tell the other teammate which files or feature you own. Push small commits, open a pull request, get a quick review, merge, and pull `main` again.
+## Collaboration
 
-Never work on the same component or page at the same time. If a conflict occurs, resolve it together immediately instead of guessing. Keep `main` deployable at all times.
+Use short-lived branches such as `feat/auth-kyc`, `feat/wallet-core`, `test/wallet-concurrency`, or `fix/device-replacement`. Push and merge at the phase gates defined in the workflow checklist, then both teammates pull `main` immediately.
 
-## Deployment
+Keep files small and explain why security and concurrency decisions exist. Prefer readable, defensible code over feature count.
 
-Link this repository to Vercel. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Vercel for Preview and Production. Do not commit `.env.local` or any service-role key.
+## Scaling Path
 
-## Agentic Development
+1. Transaction-mode connection pooling for Vercel traffic
+2. Read replicas for transaction history, never balance authorization
+3. Monthly partitioning for `ledger_entries`
+4. Hash sharding by account when one PostgreSQL cluster becomes the limit
 
-Read `AGENTS.md` before using Codex, Claude, or another coding agent. Agents must keep the root-level project structure, check current official documentation before integration changes, use the existing Supabase clients, preserve migration history, and run the relevant checks before handing work back.
+The modular monolith remains the correct starting point because a transfer touches two accounts and should complete as one local ACID transaction.

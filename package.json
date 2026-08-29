@@ -1,7 +1,8 @@
 {
-  "name": "pstu-national-hackathon-2026",
+  "name": "bangla-pay",
   "version": "0.1.0",
   "private": true,
+  "description": "BanglaPay (বাংলা-পে) — a simulated Bangladesh mobile financial service built for the PSTU National Hackathon 2026.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

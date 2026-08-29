@@ -13,10 +13,10 @@ export default function Home() {
       <Card className="w-full max-w-xl">
         <CardHeader>
           <CardTitle>
-            <h1>PSTU National Hackathon 2026</h1>
+            <h1>BanglaPay (বাংলা-পে)</h1>
           </CardTitle>
           <CardDescription>
-            The team starter is ready for your challenge brief.
+            A simulated Bangladesh mobile financial service.
           </CardDescription>
         </CardHeader>
         <CardContent>
