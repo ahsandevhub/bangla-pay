@@ -52,6 +52,11 @@ const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--ky-font-
 const headingFontFamily =
   "var(--font-baloo-da-2), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
 
+// JetBrains Mono has no Bengali glyphs, so digits/labels in Bangla fall
+// through to Anek Bangla/Hind Siliguri instead of an unstyled system font.
+const monoFontFamily =
+  "var(--ky-font-mono), var(--font-anek-bangla), var(--font-hind-siliguri), sans-serif";
+
 type Step = "intro" | "capture" | "scanning" | "review" | "verifying" | "success" | "error";
 type ErrorKind = "" | ResultMode;
 
@@ -727,7 +732,7 @@ export function KycFlow() {
                       >
                         <IdCard size={30} strokeWidth={2} color="var(--ky-muted-fg)" aria-hidden="true" />
                       </div>
-                      <span style={{ fontFamily: "var(--ky-font-mono)", fontSize: 11.5, color: "var(--ky-muted-fg)" }}>
+                      <span style={{ fontFamily: monoFontFamily, fontSize: 11.5, color: "var(--ky-muted-fg)" }}>
                         {t.placeholderHint}
                       </span>
                     </div>
@@ -1020,7 +1025,7 @@ export function KycFlow() {
                     </span>
                     <span
                       data-testid="ocr-progress-value"
-                      style={{ fontFamily: "var(--ky-font-mono)", fontSize: 14, fontWeight: 600, color: "var(--ky-primary)", fontVariantNumeric: "tabular-nums" }}
+                      style={{ fontFamily: monoFontFamily, fontSize: 14, fontWeight: 600, color: "var(--ky-primary)", fontVariantNumeric: "tabular-nums" }}
                     >
                       {num(progress)}%
                     </span>
@@ -1107,7 +1112,7 @@ export function KycFlow() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t.nidFront}</span>
-                    <span style={{ fontFamily: "var(--ky-font-mono)", fontSize: 11, color: "var(--ky-muted-fg)" }}>{t.ocrDone}</span>
+                    <span style={{ fontFamily: monoFontFamily, fontSize: 11, color: "var(--ky-muted-fg)" }}>{t.ocrDone}</span>
                   </div>
                   <button
                     type="button"
@@ -1147,7 +1152,7 @@ export function KycFlow() {
                     inputMode="numeric"
                     data-testid="nid-number"
                     className="ky-field-input"
-                    style={{ ...fieldInputBaseStyle, border: "1px solid var(--ky-field-border)", fontFamily: "var(--ky-font-mono)", letterSpacing: "0.04em" }}
+                    style={{ ...fieldInputBaseStyle, border: "1px solid var(--ky-field-border)", fontFamily: monoFontFamily, letterSpacing: "0.04em" }}
                   />
                 </label>
 
@@ -1180,7 +1185,7 @@ export function KycFlow() {
                     }}
                     data-testid="nid-date-of-birth"
                     className="ky-field-input ky-field-input-accent"
-                    style={{ ...fieldInputBaseStyle, border: "1px solid var(--ky-accent)", fontFamily: "var(--ky-font-mono)" }}
+                    style={{ ...fieldInputBaseStyle, border: "1px solid var(--ky-accent)", fontFamily: monoFontFamily }}
                   />
                 </label>
 
@@ -1341,7 +1346,7 @@ export function KycFlow() {
                       <span
                         data-testid={row.testid}
                         style={{
-                          fontFamily: row.mono ? "var(--ky-font-mono)" : "inherit",
+                          fontFamily: row.mono ? monoFontFamily : "inherit",
                           fontWeight: 600,
                           color: row.color,
                           textAlign: "right",
@@ -1405,7 +1410,7 @@ export function KycFlow() {
                       borderRadius: 10,
                       background: "var(--ky-field)",
                       border: "1px solid var(--ky-border)",
-                      fontFamily: "var(--ky-font-mono)",
+                      fontFamily: monoFontFamily,
                       fontSize: 13,
                       fontWeight: 600,
                     }}
